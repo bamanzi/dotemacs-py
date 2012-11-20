@@ -32,7 +32,9 @@
 (autoload 'pymacs-autoload  "pymacs"
   "Pymacs's equivalent of the standard emacs facility `autoload'." t)
 
-(idle-require 'pymacs)  ;;load `pymacs', for `pymacs-autoload'
+(eval-after-load "python"
+  `(require 'pymacs)  ;;load `pymacs', for `pymacs-autoload'
+  )
 
 ;;** code folding
 (eval-after-load "python"
@@ -141,10 +143,7 @@
                      (add-to-list 'ac-sources 'ac-source-pycompletemine)))
        )))
 
-;;*** gpycomplete
-;;based on pycomplete but works on built-in python-mode
-(autoload 'gpycomplete-mode "gpycomplete"
-  "Enables gpycomplete autocompletion minor-mode" t)
+
   
 ;;** document lookup
 ;;*** python.info
@@ -214,12 +213,12 @@
 ;;** python shell
 ;;*** ipython
 ;;ipython.el needs python-mode.el, thus we use a lightweight solution
-(defun ipython ()
+(defun ipython-in-term ()
   "Run ipython in `ansi-term'."
   (interactive)
   (ansi-term "ipython" "ipython"))
 
-(defun bpython ()
+(defun bpython-in-term ()
   "Run bpython in `ansi-term'."
   (interactive)
   (ansi-term "bpython" "bpython"))
@@ -290,10 +289,11 @@
 ;; modules from the current working directory, for security reasons.
 ;; To disable it:
 ;;(setq python-remove-cwd-from-path nil)
+
 ;;*** highlight-indentation
-(autoload 'highlight-indentation "highlight-indentation" nil t)
+(autoload 'highlight-indentation-mode "highlight-indentation" nil t)
 (eval-after-load "python"
-  `(add-hook 'python-mode-hook 'highlight-indentation))
+  `(add-hook 'python-mode-hook 'highlight-indentation-mode))
 
 ;;*** virtualenv
 (autoload 'virtualenv-activate  "virtualenv"
