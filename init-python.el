@@ -149,10 +149,12 @@
 ;;*** python.info
 (eval-after-load "pydoc-info"
   `(progn
-     (add-to-list 'Info-default-directory-list
-                  (file-name-directory (symbol-file 'pydoc-info)))
-     (add-to-list 'Info-directory-list
-                  (file-name-directory (symbol-file 'pydoc-info)))
+     (let ((py-info-dir (concat
+                         (file-name-directory (locate-library "pydoc-info"))
+                         "info")))
+       (add-to-list 'Info-default-directory-list py-info-dir)
+       (if Info-directory-list
+           (add-to-list 'Info-directory-list py-info-dir)))
      ;;then use C-h S (`info-lookup-symbol') to lookup python doc
 
      ))
