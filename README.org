@@ -1,0 +1,258 @@
+* Knowledge Base of Python on Emacs
+
+** General
+*** All-in-one suite
+**** [[https://github.com/jorgenschaefer/elpy][Elpy, the Emacs Lisp Python Environment]] (it requires emacs-24)
+      * Code completion (using auto-complete and rope)
+      * Indentation highlighting (using highlight-indentation)
+      * Snippet Expansion (using yasnippet and auto-complete)
+      * Code hinting (using eldoc and rope)
+      * Code Navigation (using rope and python.el)
+      * Inline Documentation (using rope)
+      * On-the-fly checks (using flymake)
+      * Virtualenv support (using virtualenv)
+      * Python web documentation
+      * Refactoring (using rope)
+      * Easy IPython support for those who use it
+
+** Major modes
+*** [[http://github.com/fgallina/python.el][fgallina' python.el]] (now part of Emacs-24)
+   * [[http://lists.gnu.org/archive/html/emacs-devel/2011-02/msg00655.html][A new major-mode for Python]]
+
+Here is the list of what it currently implements:
+
+    * Syntax highlighting
+
+    * Solid (auto)indentation support
+
+    * auto-detection of indentation levels for current file
+
+    * Triple quoted strings support (stolen without guilt from
+      GNU/Emacs' original python.el)
+
+    * Fancy variable assignment colorization
+
+    * Movement commands you’ll expect from a major-mode.
+
+    * Python shell integration (not only for Python 2 but also Python 3!)
+
+    * Python shell completion (Same as above!)
+
+    * Nice generic shell integration that could support virtually any
+      text based python shell
+
+    * PDB Tracking (it even supports ipdb!)
+
+    * Symbol completion that sucks because a running inferior shell
+      process and valid code in the current buffer are needed (Don’t
+      blame me, it’s like that in every python-mode I know). I don’t
+      use this thing a lot, I use ropemacs instead
+
+    * Eldoc support (this suffers the same drawbacks as the symbol
+      completion, but it’s the only sane way to do it from Elisp)
+
+    * add-log-current-defun support
+
+    * hideshow support
+
+    * outline support
+
+    * fill paragraph
+
+Things that (perhaps) are good to add at some point:
+
+    * python-check
+    * ffap support (I never used it though)
+    * some skeletons (I never used them since I use yasnippet)
+
+Things I don't think are necessary to be added:
+
+    * Bicycle Repair Man integration: since it is discontinued and
+      there are other really nice refactoring tools out there (like
+      rope which can be integrated via ropemacs).   
+
+** Code Navigation
+*** [[http://www.cnblogs.com/foreveryl/archive/2012/08/23/2652469.html][(emacs) python代码折叠 - foreveryl - 博客园]]
+#+begin_src emacs-lisp
+  (defface codepilot-folding-overlay
+    '((default (:inherit region :box (:line-width 1 :color "DarkSeaGreen1" :style released-button)))
+      (((class color)) (:background "DarkSeaGreen2" :foreground "black")))
+    "*Font used by folding overlay."
+    :group 'codepilot)
+  
+  (defun cptree-ov-delete ()
+    (interactive)
+    (dolist (o (overlays-at (point)))
+      (cptree-delete-overlay o 'cptree)))
+  
+  (defvar cptree--overlay-keymap nil "keymap for folding overlay")
+  
+  (unless cptree--overlay-keymap
+    (let ((map (make-sparse-keymap)))
+      (define-key map [mouse-1] 'cptree-ov-delete)
+      (define-key map "\r" 'cptree-ov-delete)
+      (setq cptree--overlay-keymap map)))
+  
+  (defun cptree-delete-overlay(o prop)
+    (when (eq (overlay-get o 'cptree-tag) prop)
+      (delete-overlay o)
+      t))
+  
+  (defun cptree-hide-region (from to prop)
+    "Hides a region by making an invisible overlay over it and save the
+  overlay on the hide-region-overlays \"ring\""
+    (interactive)
+    (let ((new-overlay (make-overlay from to)))
+      ;;(overlay-put new-overlay 'invisible nil)
+      (overlay-put new-overlay 'cptree-tag prop)
+      (overlay-put new-overlay 'face 'codepilot-folding-overlay)
+      (overlay-put new-overlay 'display
+                   (propertize
+                    (format "...<%d lines>..."
+                            (1- (count-lines (overlay-start new-overlay)
+                                             (overlay-end new-overlay))))))
+      (overlay-put new-overlay 'priority (- 0 from))
+      (overlay-put new-overlay 'keymap cptree--overlay-keymap)
+      (overlay-put new-overlay 'pointer 'hand)))
+  
+  (require 'python)
+  
+  (defun mypython-fold/unfold-block ()
+    "fold the block"
+    (interactive)
+    (let (ret b e)
+      (dolist (o (overlays-at (if (python-open-block-statement-p)
+                                  (save-excursion
+                                    (python-end-of-statement)
+                                    (point)
+                                    )
+                                (point))))
+        (when (cptree-delete-overlay o 'cptree)
+          (setq ret t)))
+      (unless ret
+        (save-excursion
+          (unless (python-open-block-statement-p)
+            (python-beginning-of-block))
+          (python-end-of-statement)
+          (setq b (point))
+          (python-end-of-block)
+          (setq e (1- (point)))
+          (cptree-hide-region b e 'cptree)))))
+  
+  (define-key python-mode-map [(f10)] 'mypython-fold/unfold-block) 
+#+end_src
+*** [[http://www.reddit.com/r/emacs/comments/e28ai/simple_tip_for_browsing_python_using_emacs/][Simple tip for browsing python using emacs： emacs]]
+    (pycscope)
+
+not work?
+
+** Code Completion
+
+*** pycomplete
+
+**** pycompletemine
+
+**** [[http://mail.python.org/pipermail/python-mode/2012-July/001508.html][(Python-mode) (PATCH) Improved pycomplete]]
+
+*** others
+**** [[https://github.com/tkf/emacs-jedi][Jedi.el - Python auto-completion for Emacs]]
+
+    based on jedi, epc, auto-complete
+
+** Document Lookup
+
+*** [[https://github.com/syohex/emacs-helm-pydoc][syohex/emacs-helm-pydoc · GitHub]]
+** Syntax Check (compile & flymake)
+
+*** [[http://reinout.vanrees.org/weblog/2010/05/11/pep8-pyflakes-emacs.html][Pep8 and pyflakes in emacs - Reinout van Rees]]
+** Debug
+
+*** [[http://sunnyeves.blogspot.com/2011/04/debugging-python-on-emacs-ide.html][Debugging Python on Emacs IDE]]
+with pdb: 
+    1. With your Python program on buffer, type M-x pdb. It would ask
+       if you want to run PDB like, pdb a.out. Replace a.out with your
+       Python module name. In the screenshot, it is adder.py (doing
+       nothing useful).
+    2. This opens a new PDB windows (Screenshot)
+    3. Go to the lines where you need breakpoint, type C-x (you can
+       notice the screenshot for the statement about it). If you are
+       using Ubuntu, you get a very good look-n-feel, like that
+       screenshot.
+    4. Type c on the PDB buffer to run upto the breakpoint
+    5. From the breakpoint, n for next line or s to explore into
+       functions on that line. In Ubuntu, you'd have a GUI to assist
+       you.
+    6. To watch a variable, type p var, as in the screenshot.
+    7. Any time during debugging, w prints out the stack and u and d
+       lets you go up and down the stack.
+
+For most of the standalone Python script, this would improve your
+productivity a lot. You can do more complex debug operations, but this
+is a very good start.
+
+*** [[http://stackoverflow.com/questions/13472022/python-emacs-debugging?1355667787][django - python emacs debugging - Stack Overflow]]
+*** [[http://stackoverflow.com/questions/9758461/emacs-using-pdbtrack-python-el][debugging - Emacs: using pdbtrack (python.el) - Stack Overflow]]
+** VirtualEnv
+
+*** virtualenv + remote (tramp)
+  * [[http://static.matthewlmcclure.com/s/2012/06/05/emacs-tramp-python-virtualenv.html][Matt McClure | Python Development In A VM Using Emacs And Virtualenv]] (2012-06-05)
+  * [[http://static.matthewlmcclure.com/s/2012/07/23/using-virtualenvs-over-emacs-tramp-is-getting-simpler.html][Matt McClure | Using Python Virtualenvs Over Emacs TRAMP Is Getting Simpler]] (2012-07-23)
+  * [[http://static.matthewlmcclure.com/s/2012/09/09/update-refactoring-python-in-emacs-remote-virtualenvs.html][Matt McClure | Update: Refactoring Python In Emacs Remote Virtualenvs]]
+** Rope
+*** ropemacs: rope in emacs
+http://rope.sourceforge.net/ropemacs.html
+
+Ropemacs is a plugin for performing python refactorings in emacs. It uses rope library and pymacs.
+You should install rope library, ropemode and pymacs before using ropemacs.
+
+Features
+
+Supports many of the refactorings that are supported by rope_ library:
+
+  * Rename
+  * Extract method/local variable
+  * Move class/function/module/package/method
+  * Inline method/local variable/parameter
+  * Restructuring
+  * Change signature
+  * ...
+
+Other refactoring-related features:
+
+  * Previewing refactorings
+  * Undo/redo refactorings
+  * Showing refactoring progress
+
+Code-assists:
+
+  * Code-completion
+  * Goto definition
+  * Show pydoc
+  * Find occurrences
+  * Organize imports (remove unused and duplicate imports and sort them)
+  * Generating python elements
+
+
+*** [[https://github.com/abingham/traad/][Traad: Client-server Rope refactoring]]
+     
+     Traad is a client-server approach to using the rope Python refactory library. It involves two basic components:
+
+     1. An XMLRPC server exposing the rope API, and
+     2. Client libraries (currently just emacs lisp) for talking to the server
+
+
+** Django
+
+*** [[https://code.djangoproject.com/wiki/Emacs][Editing Django templates with Emacs]]
+   + django-html-mumamo-mode
+   + New django-mode, django-html-mode
+     http://github.com/myfreeweb/django-mode
+   + Old modes
+     + django-mode
+     + django-html-mode
+*** [[https://gist.github.com/3791747][Gist: mrmagooey's Emacs configuration file aimed at Django web developers]]
+
+*** [[https://code.djangoproject.com/ticket/19266][django documentation in texinfo format]]
+ 
+** misc
+*** [[http://page.sourceforge.net/python-mode-extensions.html][Python-mode Extensions]] (py-mode-ext, pyp)
