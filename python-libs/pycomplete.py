@@ -55,7 +55,7 @@ def get_all_completions(s, imports=None):
     if imports is not None:
         for stmt in imports:
             try:
-                exec stmt in globals(), locald
+                exec stmt.strip() in globals(), locald
             except TypeError:
                 raise TypeError, "invalid type: %s" % stmt
             except Exception:
@@ -194,7 +194,7 @@ def _import_modules(imports, dglobals, dlocals):
     if imports is not None:
         for stmt in imports:
             try:
-                exec stmt in dglobals, dlocals
+                exec stmt.strip() in dglobals, dlocals
             except TypeError:
                 raise TypeError, 'invalid type: %s' % stmt
             except:
