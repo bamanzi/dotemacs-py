@@ -1,8 +1,19 @@
 * Knowledge Base of Python on Emacs
 
 ** General How-to
-  * [[http://www.saltycrane.com/blog/2010/05/my-emacs-python-environment/][My Emacs Python environment << SaltyCrane Blog]] (May 10, 2010)
+  * [[http://www.emacswiki.org/emacs/PythonProgrammingInEmacs][EmacsWiki: Python Programming In Emacs]]
+
+  * [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][Emacs as a powerful Python IDE]] - [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][EnigmaCurry]] (May 09, 2008)
+  * [[http://hide1713.wordpress.com/2009/01/30/setup-perfect-python-environment-in-emacs/][Setup Perfect Python Environment In Emacs « The website of Lei Chen]] (Jan 30, 2009)
+  * [[http://www.saltycrane.com/blog/2010/05/my-emacs-python-environment/][My Emacs Python environment << SaltyCrane Blog]] (May 10, 2010, Updated at Apr 24, 2011)
+  * [[http://pedrokroger.net/2010/07/configuring-emacs-as-a-python-ide-2/][Configuring Emacs as a Python IDE - Pedro Kroger]] (Jul 15, 2010)
+  * [[http://coder.cl/2010/09/emacs-as-python-ide/][emacs as python ide | coder . cl]] (Sep 30, 2010)
   * [[http://nipy.sourceforge.net/devel/tools/tricked_out_emacs.html][Neuroimaging in Python — Community Page]] (Jul 23, 2011)
+  * [[http://www.kurup.org/blog/2012/10/24/emacs-for-python-programming/][Emacs for Python Programming - Vinod Kurup]] (Oct 24, 2012)
+
+*** Chinese
+  * [[http://www.cnblogs.com/coderzh/archive/2009/12/26/emacspythonide.html][Emacs中打造强大的Python IDE - CoderZh - 博客园]] (Dec 26, 2009)
+  * [[http://mmmyddd.freeshell.net/blog.cgi/Computer/Python/delightedprogpythonunderemacs][Enjoy Python under Emacs - Justin's Blog]] (Mar 28, 2010)
 ** All-in-one suite
 *** emacs-for-python
 # <epy>
@@ -12,7 +23,7 @@ https://github.com/gabrielelanaro/emacs-for-python
 https://github.com/pdee/pdee
 Based on [[emacs-for-python]]
 
-*** [[https://github.com/jorgenschaefer/elpy][Elpy, the Emacs Lisp Python Environment]] (it requires emacs-24)
+*** [[https://github.com/jorgenschaefer/elpy][Elpy, the Emacs Lisp Python Environment]]
 # <elpy>
      * Code completion (using auto-complete and rope)
      * Indentation highlighting (using highlight-indentation)
@@ -26,51 +37,60 @@ Based on [[emacs-for-python]]
      * Refactoring (using rope)
      * Easy IPython support for those who use it
 
+cons:
+  - it requires emacs-24
+
+*** others
+  * empetado 
+https://github.com/haplo/empetado
+
+#+begin_quote
+empetado stands for EMacs Python Enhanced Tight Ass DOmination. It's a funny word in Spanish, but
+you won't find it in your usual dictionary. Let's just say that it refers to this configuration
+being full of coolness, awesomeness and wonderfulness.
+
+empetado is basically my emacs configuration, anything I find useful will probably find its way
+here. The first thing I wanted to have was good Python support (hint: it didn't come first, nor
+second, nor third...), but there are more things in there, like git and subversion support,
+org-mode, ido/smex, yasnippet, desktop-mode, EMMS...
+#+end_quote
+
+based on [[emacs-for-python]]. There're seems no too much added value.
+
+
 ** Major modes
 *** built-in
+(emacs-24 uses [[fgallina's python.el]])
 *** python-mode.el
 https://launchpad.net/python-mode
-*** [[http://github.com/fgallina/python.el][fgallina' python.el]] (now part of Emacs-24)
+*** fgallina' python.el
+http://github.com/fgallina/python.el
+(now part of Emacs-24)
+
    * [[http://lists.gnu.org/archive/html/emacs-devel/2011-02/msg00655.html][A new major-mode for Python]]
 
 Here is the list of what it currently implements:
-
     * Syntax highlighting
-
     * Solid (auto)indentation support
-
     * auto-detection of indentation levels for current file
-
     * Triple quoted strings support (stolen without guilt from
       GNU/Emacs' original python.el)
-
     * Fancy variable assignment colorization
-
     * Movement commands you’ll expect from a major-mode.
-
     * Python shell integration (not only for Python 2 but also Python 3!)
-
     * Python shell completion (Same as above!)
-
     * Nice generic shell integration that could support virtually any
       text based python shell
-
     * PDB Tracking (it even supports ipdb!)
-
     * Symbol completion that sucks because a running inferior shell
       process and valid code in the current buffer are needed (Don’t
       blame me, it’s like that in every python-mode I know). I don’t
       use this thing a lot, I use ropemacs instead
-
     * Eldoc support (this suffers the same drawbacks as the symbol
       completion, but it’s the only sane way to do it from Elisp)
-
     * add-log-current-defun support
-
     * hideshow support
-
     * outline support
-
     * fill paragraph
 
 Things that (perhaps) are good to add at some point:
@@ -84,6 +104,7 @@ Things I don't think are necessary to be added:
     * Bicycle Repair Man integration: since it is discontinued and
       there are other really nice refactoring tools out there (like
       rope which can be integrated via ropemacs).   
+
 *** loveshack's python.el
 http://www.loveshack.ukfsn.org/emacs/#python.el
 
@@ -100,22 +121,91 @@ not work?
 
 ** Code Completion
 *** built-in
+**** emacs <= 23.1
+default key-bindings: =M-TAB= (=complete-symbol)
+
+**** emacs 23.2 ~ 23.4
+default key-bindings: =M-TAB= (=completion-at-point=)
+(if you set =tab-always-indent= to =complete=, you can use =TAB= for completion.)
+
+**** emacs 24.x
+default key-bindings: =M-TAB= (=completion-at-point=)
+(if you set =tab-always-indent= to =complete=, you can use =TAB= for completion.)
+
+Emacs 24 uses [[fgnallina's python.el]], which won't auto-eval import statements in your python code. To
+get module members, you need to start python shell (via =M-x run-python=) first and import modules
+in the shell by yourself.
+
 **** auto-complete front-end
+tested on emacs-23.1 & 24.1.
+
+#+begin_src emacs-lisp
+(defun ac-py-complete-document (symbol)
+  (py-complete-exec (format "print help(%s)\n" symbol)))
+
+(setq ac-source-py-complete
+  '( (candidates . (py-complete-completions ac-prefix))
+     (prefix .  "[ \t\n['\",()]\\([^\t\n['\",()]+\\)\\=")  ;;py-complete-completion-re
+     (symbol . "p-c")
+     (document . ac-py-complete-document)))
+#+end_src
 *** pycomplete
-References:
-  * [[http://wiki.python.org/moin/EmacsPythonCompletion][EmacsPythonCompletion - PythonInfo Wiki]] (Oct 16, 2003)
+part of [[python-mode.el]].
+
+pycomplete.el + pycomplete.py + pymacs
+
+note:
+  * requires pymacs
+
+cons:
+  - only works on python-mode.el
+
+**** auto-complete front-end
+https://github.com/pdee/pdee/blob/master/auto-complete-pycomplete.el
 **** patch:  [Python-mode] [PATCH] Improved pycomplete]
    part1: http://mail.python.org/pipermail/python-mode/2012-July/001508.html
    part2:  http://mail.python.org/pipermail/python-mode/2012-July/001515.html
 **** pycompletemine
+https://github.com/pdee/pdee/blob/master/extensions/pycompletemine.el
+
+it works on python.el & python-mode.el
 
 *** py-complete
+  * [[http://wiki.python.org/moin/EmacsPythonCompletion][EmacsPythonCompletion - PythonInfo Wiki]] (Oct 16, 2003)
+  * an improved version: http://hg.rooijan.za.net/addons/file/01fe1d4368ed/progmodes/py-complete.el
+
+features:
+  * =C-return=: completion using minibuffer
+  * =py-complete-try-complete-symbol= for =hippie-expand=
+  * showing documentation on module, class, method name when pressing F1
+  * showing function/method signature on =F2=, =(= or =,= 
+pros:
+  + single file needed (even pymacs not needed)
+  + to get better completion, you can send some region of code to the python shell
+cons:
+  - only works on python-mode.el 
+
 *** gpycomplete
+https://github.com/fgallina/gpycomplete
+
+#+begin_quote
+gpycomplete is a python code autocompletion and helper suite for GNU/Emacs. It feels like having
+ipython in your buffer.
+
+gpycomplete is written from scratch by Fabián E. Gallina, althought some functions (namely get_help
+and get_signature) are strongly inspired in the original pycomplete package that was available at
+http://python-mode.sf.net.
+
+The main feature of gpycomplete is that the completions it returns are actually what the python
+interpreter running in the background has available in its context. This is what makes gpycomplete
+so powerful and what it gives the feel of using ipython.
+#+end_quote
+
 *** [[ropemacs]]
 *** others
 **** [[https://github.com/tkf/emacs-jedi][Jedi.el - Python auto-completion for Emacs]]
 
-    based on jedi, epc, auto-complete
+based on jedi, epc, auto-complete
 
 ** Document Lookup
 *** built-in
@@ -225,12 +315,20 @@ is a very good start.
   * [[http://stackoverflow.com/questions/13472022/python-emacs-debugging?1355667787][django - python emacs debugging - Stack Overflow]]
 
 ** VirtualEnv
+[[https://github.com/aculich/virtualenv.el][Virtualenv.el (something similar is included in python-mode.el]]
+
 *** virtualenv + remote (tramp)
   * [[http://static.matthewlmcclure.com/s/2012/06/05/emacs-tramp-python-virtualenv.html][Matt McClure | Python Development In A VM Using Emacs And Virtualenv]] (2012-06-05)
   * [[http://static.matthewlmcclure.com/s/2012/07/23/using-virtualenvs-over-emacs-tramp-is-getting-simpler.html][Matt McClure | Using Python Virtualenvs Over Emacs TRAMP Is Getting Simpler]] (2012-07-23)
   * [[http://static.matthewlmcclure.com/s/2012/09/09/update-refactoring-python-in-emacs-remote-virtualenvs.html][Matt McClure | Update: Refactoring Python In Emacs Remote Virtualenvs]]
 *** virtualenvwrapper + desktop
 http://virtualenvwrapper.readthedocs.org/en/latest/extensions.html#emacs-desktop
+
+*** references:
+  * [[http://slacy.com/blog/2011/03/pymacs-ropemacs-and-virtualenv-all-at-the-same-time/][Using Pymacs and virtualenv together (slacy.com)]]
+  * [[http://stackoverflow.com/questions/2855378/ropemacs-usage-tutorial/2858148#2858148][How to use Rope to automatically change virtualenv for you]]
+  * [[http://almostobsolete.net/rope-and-virtualenv.html][Ropemacs and virtualenv (almostobsolete.net)]]
+  * 
 ** Rope
 *** ropemacs: rope in emacs
 http://rope.sourceforge.net/ropemacs.html
@@ -278,7 +376,7 @@ Code-assists:
 
 *** [[https://code.djangoproject.com/wiki/Emacs][Editing Django templates with Emacs]]
    + django-html-mumamo-mode
-   + New django-mode, django-html-mode
+   + New django-mode, django-html-mode (recommended)
      http://github.com/myfreeweb/django-mode
    + Old modes
      + django-mode
