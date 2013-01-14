@@ -284,6 +284,8 @@ disadvantages:
   
 **** References
 ***** [[http://sunnyeves.blogspot.com/2011/04/debugging-python-on-emacs-ide.html][Debugging Python on Emacs IDE]]
+#+begin_quote
+
 with pdb: 
     1. With your Python program on buffer, type M-x pdb. It would ask
        if you want to run PDB like, pdb a.out. Replace a.out with your
@@ -305,6 +307,7 @@ with pdb:
 For most of the standalone Python script, this would improve your
 productivity a lot. You can do more complex debug operations, but this
 is a very good start.
+#+end_quote
 
 ***** [[http://stackoverflow.com/questions/9758461/emacs-using-pdbtrack-python-el][debugging - Emacs: using pdbtrack (python.el) - Stack Overflow]]
 *** others
