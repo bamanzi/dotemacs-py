@@ -208,6 +208,15 @@
 )
 
 ;;*** pylookup
+(autoload 'pylookup-lookup "pylookup"
+  "Lookup SEARCH-TERM in the Python HTML indexes." t)
+
+(setq pylookup-dir (file-name-directory (locate-library "pylookup")))
+(setq pylookup-program (if (eq system-type 'windows-nt)
+                           (concat pylookup-dir "pylookup.bat")
+                         (concat pylookup-dir "pylookup.py")))
+(setq pylookup-db-file (concat pylookup-dir "pylookup.db"))
+
 
 ;;** run
 
