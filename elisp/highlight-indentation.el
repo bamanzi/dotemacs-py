@@ -56,14 +56,24 @@ on spaces"
       (set (make-local-variable 'highlight-indentation-offset)
            ;; Set indentation offset from highlight-indentation-offset if set, otherwise
            ;; according to major mode
-           (cond ((eq major-mode 'python-mode)
-                  (if (boundp 'python-indent)
-                      python-indent
-                    py-indent-offset))
+           (cond ((and (eq major-mode 'python-mode) (boundp 'python-indent))
+                  python-indent)
+                 ((and (eq major-mode 'python-mode) (boundp 'py-indent-offset))
+                  py-indent-offset)
+                 ((and (eq major-mode 'python-mode) (boundp 'python-indent-offset))
+                  python-indent-offset)
                  ((eq major-mode 'ruby-mode)
                   ruby-indent-level)
+                 ((and (eq major-mode 'scala-mode) (boundp 'scala-indent:step))
+                  scala-indent:step)
+                 ((and (eq major-mode 'scala-mode) (boundp 'scala-mode-indent:step))
+                  scala-mode-indent:step)
+                 ((or (eq major-mode 'scss-mode) (eq major-mode 'css-mode))
+                  css-indent-offset)
                  ((eq major-mode 'nxml-mode)
                   nxml-child-indent)
+                 ((eq major-mode 'coffee-mode)
+                  coffee-tab-width)
                  ((local-variable-p 'c-basic-offset)
                   c-basic-offset)
                  (t

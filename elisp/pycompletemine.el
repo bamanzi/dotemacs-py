@@ -264,8 +264,10 @@
   )
 
 (py-complete-init-keys python-mode-map)
-(unless (boundp 'python-shell-map)   
-  (defalias 'inferior-python-mode-map 'python-shell-map)) ;; Emacs 24 or fgallina's python.el
+
+(if (and (not (boundp 'python-shell-map))
+         (boundp 'inferior-python-mode-map))
+  (setq  python-shell-map inferior-python-mode-map)) ;; Emacs 24 or fgallina's python.el
 (when (boundp 'python-shell-map)
   (py-complete-init-keys python-shell-map)
   (define-key python-shell-map "\C-i" 'py-complete))
