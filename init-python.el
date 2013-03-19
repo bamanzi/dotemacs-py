@@ -212,10 +212,38 @@
   "Lookup SEARCH-TERM in the Python HTML indexes." t)
 
 (setq pylookup-dir (file-name-directory (locate-library "pylookup")))
-(setq pylookup-program (if (eq system-type 'windows-nt)
-                           (concat pylookup-dir "pylookup.bat")
-                         (concat pylookup-dir "pylookup.py")))
+(setq pylookup-program (concat pylookup-dir "pylookup.py"))
 (setq pylookup-db-file (concat pylookup-dir "pylookup.db"))
+
+(when (eq system-type 'windows-nt)
+  ;; (call-progress "pylookup.bat"...) would cause "file-error: spawning child process: exec format error"
+  (setq pylookup-program "python.exe")
+
+  (defun pylookup-exec-get-cache ()
+    "Run a pylookup process and get a list of cache (db key)"
+
+    (split-string
+     (with-output-to-string
+       (call-process pylookup-program nil standard-output nil
+                     (if (eq system-type 'windows-nt) (locate-library "pylookup.py") "")
+                     "-d" (expand-file-name pylookup-db-file)
+                     "-c"))))
+
+  (defun pylookup-exec-lookup (search-term)
+    "Runs a pylookup process and returns a list of (term, url) pairs."
+
+    (mapcar
+     (lambda (x) (split-string x ";"))
+     (split-string
+      (with-output-to-string
+        (apply 'call-process pylookup-program nil standard-output nil
+               (if (eq system-type 'windows-nt) (locate-library "pylookup.py") "")                
+               "-d" (expand-file-name pylookup-db-file)
+               "-l" search-term
+               "-f" "Emacs"
+               pylookup-search-options))
+      "\n" t)))
+  )
 
 
 ;;** run
