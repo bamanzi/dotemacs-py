@@ -1,5 +1,37 @@
 ;;* python-related configuration
 
+;;** python.el: use fganilla's python.el
+;;emacs-24 already contains
+(when (< emacs-major-version 24)
+  (let ((python_el_e23 (concat (if load-file-name (file-name-directory load-file-name) default-directory)
+                               "python/_emacs23/python.el")))
+    (if (not (file-exists-p python_el_e23))
+        (message "fgallina's python.el not found. you need to load it manually.")
+      (message "loading fgallina's python.el for emacs-23")
+      (load-file python_el_e23))))
+
+
+(defun setup-ipython ()
+  (interactive)
+  (setq
+   python-shell-interpreter "ipython"
+   python-shell-interpreter-args ""
+   python-shell-prompt-regexp "In \\[[0-9]+\\]: "
+   python-shell-prompt-output-regexp "Out\\[[0-9]+\\]: "
+   python-shell-completion-setup-code
+   "from IPython.core.completerlib import module_completion"
+   python-shell-completion-module-string-code
+   "';'.join(module_completion('''%s'''))\n"
+   python-shell-completion-string-code
+   "';'.join(get_ipython().Completer.all_completions('''%s'''))\n")
+
+  (when (eq system-type 'windows-nt)
+    (setq
+     python-shell-interpreter "python.exe"
+     python-shell-interpreter-args "-i C:\\Python27\\Scripts\\ipython-script.py"))    
+  )
+
+;;** get rid of cedet
 (eval-after-load "python"
   `(progn
      (remove-hook 'python-mode-hook 'wisent-python-default-setup)     
