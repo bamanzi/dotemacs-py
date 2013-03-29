@@ -28,7 +28,9 @@
   (when (eq system-type 'windows-nt)
     (setq
      python-shell-interpreter "python.exe"
-     python-shell-interpreter-args "-i C:\\Python27\\Scripts\\ipython-script.py"))    
+     python-shell-interpreter-args (concat "-i "
+                                           (replace-regexp-in-string "/" "\\\\" (file-name-directory (executable-find "python")))
+                                           "Scripts\\ipython-script.py")))  
   )
 
 ;;** get rid of cedet
