@@ -57,7 +57,7 @@
       (goto-char (point-min))
       (setq imports nil)
       (while (re-search-forward
-	      "^[\t ]*\\(import \\|from \\([A-Za-z_][A-Za-z_0-9]*\\) import \\).*"
+	      "^[\t ]*\\(import \\|from \\([A-Za-z_\\.][A-Za-z_0-9\\.]*\\) import \\).*"
 	      nil t)
 	(setq imports (append imports
 			      (list (buffer-substring
