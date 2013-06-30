@@ -1,10 +1,26 @@
 ;;* python-related configuration
 
+(setq dotemacs-py-dir (or load-file-name default-directory))
+(progn
+  (add-to-list 'load-path (concat dotemacs-py-dir "elisp"))
+  (add-to-list 'Info-default-directory-list (concat dotemacs-py-dir "info"))
+  (setq Info-directory-list nil)
+  (setenv "PYTHONPATH"
+          (concat dotemacs-py-dir "python-libs" path-separator
+                  (getenv "PYTHONPATH")))
+  (setenv "PATH"
+          (concat dotemacs-py-dir "bin" path-separator
+                  (getenv "PATH")))
+  (add-to-list 'exec-path (concat dotemacs-py-dir "bin")))
+ 
+               
+
+
 ;;** python.el: use fganilla's python.el
 ;;emacs-24 already contains
 (when (< emacs-major-version 24)
   (let ((python_el_e23 (concat (if load-file-name (file-name-directory load-file-name) default-directory)
-                               "python/_emacs23/python.el")))
+                               "elisp/_emacs23/python.el")))
     (if (not (file-exists-p python_el_e23))
         (message "fgallina's python.el not found. you need to load it manually.")
       (message "loading fgallina's python.el for emacs-23")
@@ -49,15 +65,6 @@
 
 
 ;;** pymacs: interface between emacs lisp and python
-;; add site-lisp/proglangs/python/python-libs to PYTHONPATH
-(let ((path (locate-library "pymacs")))
-  (if path
-      (concat
-       (setenv "PYTHONPATH"
-               (concat (file-name-directory path)
-                       "python-libs/"
-                       path-separator))
-       (getenv "PYTHONPATH"))))
 
 (autoload 'pymacs-load  "pymacs"
   "Import the Python module named MODULE into Emacs." t)
@@ -181,17 +188,16 @@
   
 ;;** document lookup
 ;;*** python.info
-(eval-after-load "pydoc-info"
-  `(progn
-     (let ((py-info-dir (concat
-                         (file-name-directory (locate-library "pydoc-info"))
-                         "info")))
-       (add-to-list 'Info-default-directory-list py-info-dir)
-       (if Info-directory-list
-           (add-to-list 'Info-directory-list py-info-dir)))
-     ;;then use C-h S (`info-lookup-symbol') to lookup python doc
-
-     ))
+;; (eval-after-load "pydoc-info"
+;;   `(progn
+;;      (let ((py-info-dir (concat
+;;                          (file-name-directory (locate-library "pydoc-info"))
+;;                          "info")))
+;;        (add-to-list 'Info-default-directory-list py-info-dir)
+;;        (if Info-directory-list
+;;            (add-to-list 'Info-directory-list py-info-dir)))
+;;      ;;then use C-h S (`info-lookup-symbol') to lookup python doc
+;;      ))
 
 (eval-after-load "python"
   `(progn
