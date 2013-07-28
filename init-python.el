@@ -1,6 +1,9 @@
 ;;* python-related configuration
 
-(setq dotemacs-py-dir (or load-file-name default-directory))
+(setq dotemacs-py-dir (if load-file-name
+                          (file-name-directory load-file-name)
+                        default-directory))
+
 (progn
   (add-to-list 'load-path (concat dotemacs-py-dir "elisp"))
   (add-to-list 'Info-default-directory-list (concat dotemacs-py-dir "info"))
