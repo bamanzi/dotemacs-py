@@ -19,7 +19,7 @@
                
 
 
-;;** python.el: use fganilla's python.el
+;; ** python.el: use fganilla's python.el
 ;;emacs-24 already contains
 (when (< emacs-major-version 24)
   (let ((python_el_e23 (concat (if load-file-name (file-name-directory load-file-name) default-directory)
@@ -52,7 +52,7 @@
                                            "Scripts\\ipython-script.py")))  
   )
 
-;;** get rid of cedet
+;; ** get rid of cedet
 (eval-after-load "python"
   `(progn
      (remove-hook 'python-mode-hook 'wisent-python-default-setup)     
@@ -67,7 +67,7 @@
   (setq imenu-create-index-function 'python-imenu-create-index))
 
 
-;;** pymacs: interface between emacs lisp and python
+;; ** pymacs: interface between emacs lisp and python
 
 (autoload 'pymacs-load  "pymacs"
   "Import the Python module named MODULE into Emacs." t)
@@ -80,7 +80,7 @@
   `(require 'pymacs)  ;;load `pymacs', for `pymacs-autoload'
   )
 
-;;** code folding
+;; ** code folding
 (eval-after-load "python"
   `(progn
      (require 'hideshow)
@@ -119,8 +119,8 @@
   `(add-hook 'python-mode-hook 'python-mode-init-folding))
 
 
-;;** code completion
-;;*** auto-complete front-end for GNU Emacs built-in completion
+;; ** code completion
+;; *** auto-complete front-end for GNU Emacs built-in completion
 (defun python-symbol-completions-maybe (prefix)
   (let ((python-el (symbol-file major-mode)))
     (if (string-match "lisp/progmodes/python.el" python-el) ;;Emacs builtin python.el
@@ -140,7 +140,7 @@
                   (add-to-list 'ac-sources 'ac-source-python-builtin 'append)))
     ))
 
-;;*** pycompletemine from PDEE (https://github.com/pdee/pdee/ )
+;; *** pycompletemine from PDEE (https://github.com/pdee/pdee/ )
 ;; You need `pycompletemine.{el,py}' from PDEE and pymacs
 ;;advantages:
 ;;   + differ from `pycomplete', this one would work on both python-mode.el
@@ -189,8 +189,8 @@
 
 
   
-;;** document lookup
-;;*** python.info
+;; ** document lookup
+;; *** python.info
 ;; (eval-after-load "pydoc-info"
 ;;   `(progn
 ;;      (let ((py-info-dir (concat
@@ -229,7 +229,7 @@
        ))
   )
 
-;;*** pydoc command line
+;; *** pydoc command line
 ;;stolen from http://stackoverflow.com/a/1068731
 (defun pydoc (&optional arg)
   (interactive (list
@@ -249,7 +249,7 @@
   (ad-deactivate-regexp "auto-compile-yes-or-no-p-always-yes")
 )
 
-;;*** pylookup
+;; *** pylookup
 (autoload 'pylookup-lookup "pylookup"
   "Lookup SEARCH-TERM in the Python HTML indexes." t)
 
@@ -288,11 +288,23 @@
   )
 
 
-;;** run
+;; ** run
 
 
-;;** python shell
-;;*** ipython
+;; ** python shell
+;; *** python-cell
+(autoload 'python-cell-mode "python-cell"
+  "Highlight MATLAB-like cells and navigate between them." t)
+
+(eval-after-load "python"
+  `(progn
+     (add-hook 'python-mode-hook 'python-cell-mode)
+
+     ;; use a darker background color for CELL
+     (setq python-cell-highlight-face 'fringe)
+     ))
+
+;; *** ipython
 ;;ipython.el needs python-mode.el, thus we use a lightweight solution
 (defun ipython-in-term ()
   "Run ipython in `ansi-term'."
@@ -305,10 +317,10 @@
   (ansi-term "bpython" "bpython"))
 
 
-;;** lint
+;; ** lint
 ;;TIPS: or you can M-x `python-check' (provided by python.el)
 
-;;*** pep8
+;; *** pep8
 (autoload 'python-pep8  "python-pep8"
   "Run PEP8, and collect output in a buffer." t)
 (autoload 'pep8 "python-pep8"
@@ -322,7 +334,7 @@
     (call-interactively 'compile)  
   ))
 
-;;*** pylint
+;; *** pylint
 (autoload 'python-pylint "python-pylint"
   "Run PYLINT, and collect output in a buffer." t)
 (autoload 'pylint  "python-pylint"
@@ -337,10 +349,10 @@
     (call-interactively 'compile)  
   ))
 
-;;*** pyflakes
-;;*** pychecker
+;; *** pyflakes
+;; *** pychecker
 
-;;** ropemacs
+;; ** ropemacs
 (setq ropemacs-confirm-saving nil
       ropemacs-guess-project t
       ropemacs-separate-doc-buffer t)
@@ -365,29 +377,18 @@
              (pymacs-load "ropemacs" "rope-"))))
      ))
 
-;;** misc
+;; ** misc
 ;; By default, Emacs inhibits (for `run-python') the loading of Python
 ;; modules from the current working directory, for security reasons.
 ;; To disable it:
 ;;(setq python-remove-cwd-from-path nil)
 
-;;*** highlight-indentation
+;; *** highlight-indentation
 (autoload 'highlight-indentation-mode "highlight-indentation" nil t)
 (eval-after-load "python"
   `(add-hook 'python-mode-hook 'highlight-indentation-mode))
 
-;;*** virtualenv
+;; *** virtualenv
 (autoload 'virtualenv-activate  "virtualenv"
   "Activate the virtualenv located in DIR" t)
 
-;;*** python-cell
-(autoload 'python-cell-mode "python-cell"
-  "Highlight MATLAB-like cells and navigate between them." t)
-
-(eval-after-load "python"
-  `(progn
-     (add-hook 'python-mode-hook 'python-cell-mode)
-
-     ;; use a darker background color for CELL
-     (setq python-cell-highlight-face 'fringe)
-     ))
