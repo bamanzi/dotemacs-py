@@ -204,8 +204,7 @@
 
 (eval-after-load "python"
   `(progn
-     (require 'pydoc-info nil t)
-     ))
+     (require 'pydoc-info nil t) ))
 
 (progn
   (defvar anything-c-source-info-python
@@ -381,3 +380,14 @@
 (autoload 'virtualenv-activate  "virtualenv"
   "Activate the virtualenv located in DIR" t)
 
+;;*** python-cell
+(autoload 'python-cell-mode "python-cell"
+  "Highlight MATLAB-like cells and navigate between them." t)
+
+(eval-after-load "python"
+  `(progn
+     (add-hook 'python-mode-hook 'python-cell-mode)
+
+     ;; use a darker background color for CELL
+     (setq python-cell-highlight-face 'fringe)
+     ))
