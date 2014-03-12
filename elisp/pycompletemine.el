@@ -17,6 +17,7 @@
 ;; symbols within the current buffer.  See pycomplete.py for the Python side
 ;; of things and a short description of what to expect.
 
+(require 'python) ;;FIXME: it seems that this package also works on python-mode.el
 (require 'pymacs)
 
 (pymacs-load "pycomplete")
