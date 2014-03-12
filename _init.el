@@ -351,7 +351,14 @@
   ))
 
 ;; *** pyflakes
+;;FIXME: when `flycheck' loaded, flymake might not work
+(autoload 'flymake-python-pyflakes-load "flymake-python-pyflakes"
+  "Undocumented." t)
+
+(defalias 'pyflakes 'flymake-python-pyflakes-load)
+
 ;; *** pychecker
+
 
 ;; ** ropemacs
 (setq ropemacs-confirm-saving nil
