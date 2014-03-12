@@ -291,6 +291,12 @@
 
 ;; ** run
 
+;; *** doctest?
+
+;; ** debug
+;; *** pdb & ipdb (fgallina's python.el)
+
+;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
 ;; *** python-cell
@@ -384,6 +390,7 @@
          (if nil
              (pymacs-load "ropemacs" "rope-"))))
      ))
+
 
 ;; ** misc
 ;; By default, Emacs inhibits (for `run-python') the loading of Python
