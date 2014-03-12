@@ -140,15 +140,25 @@ the command `python-cell-mode' to turn Python-Cell mode on."
 (defun python-shell-send-cell ()
   "Send the cell the cursor is in to the inferior Python process."
   (interactive)
-  (let (
-        (start (save-excursion (python-beginning-of-cell)
+  (let* (
+         (start (save-excursion (python-beginning-of-cell)
                                (point)))
-        (end (save-excursion (python-end-of-cell)
-                             (point))))
-    ;; (goto-char end)
-    ;; (push-mark start)
-    ;; (activate-mark)))
-    (python-shell-send-region start end)))
+         (end (save-excursion (python-end-of-cell)
+                             (point)))
+               (content  (buffer-substring start end))
+
+         (preline "if True:\n")
+
+         (line-num (line-number-at-pos start))
+         ;; When sending a region, add blank lines for non sent code so
+         ;; backtraces remain correct.         
+         (postline (make-string (1- line-num) ?\n)))
+    ;;(message "DEBUG: %s" (substring content 0 4))
+    (python-shell-send-string (concat (if (string= (substring content 0 2) "  ")
+                                          preline
+                                        "")
+                                      content
+                                      postline))))
 
 
 ;;; Cell Highlighting
