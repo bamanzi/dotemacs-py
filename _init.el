@@ -47,9 +47,10 @@
   (when (eq system-type 'windows-nt)
     (setq
      python-shell-interpreter "python.exe"
+     python-install-dir (shell-command-to-string "python -c \"import sys; sys.stdout.write(sys.prefix)\"")
      python-shell-interpreter-args (concat "-i "
-                                           (replace-regexp-in-string "/" "\\\\" (file-name-directory (executable-find "python")))
-                                           "Scripts\\ipython-script.py")))  
+                                           (replace-regexp-in-string "/" "\\\\" python-install-dir)
+                                           "\\Scripts\\ipython-script.py")))
   )
 
 ;; ** get rid of cedet
