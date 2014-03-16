@@ -398,10 +398,23 @@
 ;; To disable it:
 ;;(setq python-remove-cwd-from-path nil)
 
-;; *** highlight-indentation
+;; *** highlight indentation
+(autoload 'indent-guide-mode  "indent-guide"
+  "Show vertical lines to guide indentation." t)
+
 (autoload 'highlight-indentation-mode "highlight-indentation" nil t)
+
+;; `indent-guide-mode' actually use a char as the guide line,
+;; thus if you use term's copy method (such as putty's or tmux's),
+;; maybe `highlight-indentation-mode' is better.
+(defun highlight-indent ()
+  (interactive)
+  (if (display-graphic-p)
+      (indent-guide-mode)
+    (highlight-indentation-mode)))
+
 (eval-after-load "python"
-  `(add-hook 'python-mode-hook 'highlight-indentation-mode))
+  `(add-hook 'python-mode-hook 'highlight-indent))
 
 ;; *** virtualenv
 (autoload 'virtualenv-activate  "virtualenv"
