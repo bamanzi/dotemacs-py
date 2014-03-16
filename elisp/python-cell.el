@@ -63,17 +63,6 @@
   "Overlay used by Python-Cell mode to highlight the current cell.")
 (make-variable-buffer-local 'python-cell-overlay)
 
-(defcustom python-cell-highlight-face 'python-cell
-  "Face with which to highlight the current cell in Python-Cell mode."
-  :type 'face
-  :group 'python-cell
-  :set (lambda (symbol value)
-   (set symbol value)
-   (dolist (buffer (buffer-list))
-     (with-current-buffer buffer
-       (when python-cell-overlay
-         (overlay-put python-cell-overlay 'face python-cell-highlight-face))))))
-
 (defcustom python-cell-sticky-flag nil
   "Non-nil means the Python-Cell mode highlight appears in all windows.
 Otherwise Python-Cell mode will highlight only in the selected
@@ -136,30 +125,68 @@ the command `python-cell-mode' to turn Python-Cell mode on."
              (forward-char -1))
     (goto-char (point-max))))
 
-
-(defun python-shell-send-cell ()
+(defun python-shell-send-cell (noactivate)
   "Send the cell the cursor is in to the inferior Python process."
-  (interactive)
+  (interactive "P")
   (let* (
          (start (save-excursion (python-beginning-of-cell)
                                (point)))
          (end (save-excursion (python-end-of-cell)
                              (point)))
-               (content  (buffer-substring start end))
-
-         (preline "if True:\n")
-
          (line-num (line-number-at-pos start))
+
+         (content  (buffer-substring start end))
+         (heading (buffer-substring (save-excursion (goto-char start)
+                                                    (ignore-errors (previous-line 1))
+                                                    (beginning-of-line)
+                                                    (point))
+                                    (if (> start 1)
+                                        (+ start -1)
+                                      start)))
+         (preline (concat "print '#exec cell on line "
+                          (format "%s" line-num)
+                          ": "
+                          heading "'\n"
+                          (if (string= (substring content 0 2) "  ")
+                              "if True:\n")))
+
          ;; When sending a region, add blank lines for non sent code so
          ;; backtraces remain correct.         
          (postline (make-string (1- line-num) ?\n)))
-    ;;(message "DEBUG: %s" (substring content 0 4))
-    (python-shell-send-string (concat (if (string= (substring content 0 2) "  ")
-                                          preline
-                                        "")
+    (message "Sending cell to shell: %s" heading)
+    (python-shell-send-string (concat preline
                                       content
-                                      postline))))
+                                      postline))
+    (unless noactivate
+      (with-selected-window (selected-window)
+        (switch-to-buffer-other-window (python-shell-get-shell-buffer-name))
+        (goto-char (point-max))))))
 
+(defun python-shell-get-shell-buffer-name ()
+  (cond
+   ;; emacs-23's built-in python.el (emacs 23, 24.1, 24.2)
+   ((and (fboundp 'python-proc)
+         (string= (symbol-file 'run-python)
+                  (symbol-file 'python-proc)))
+    (process-buffer (python-proc)))
+   
+   ;; fganilla's python.el (emacs >= 24.3 or manually installed)
+   ;; extracted from `python-shell-get-process`
+   ((string= (symbol-file 'run-python)
+             (symbol-file 'python-shell-get-process-name))
+    (let* ((dedicated-proc-name (python-shell-get-process-name t))
+           (dedicated-proc-buffer-name (format "*%s*" dedicated-proc-name))
+           (global-proc-name  (python-shell-get-process-name nil))
+           (global-proc-buffer-name (format "*%s*" global-proc-name))
+           (dedicated-running (comint-check-proc dedicated-proc-buffer-name))
+           (global-running (comint-check-proc global-proc-buffer-name)))
+      ;; Always prefer dedicated
+      (or (and dedicated-running dedicated-proc-buffer-name)
+          (and global-running global-proc-buffer-name))))
+   
+   ;; FIXME: other major mode
+   (t
+    "*Python*")))
 
 ;;; Cell Highlighting
 
@@ -195,7 +222,7 @@ It should return nil if there's no region to be highlighted."
       (progn
         (unless python-cell-overlay
           (setq python-cell-overlay (make-overlay 1 1)) ; to be moved
-          (overlay-put python-cell-overlay 'face python-cell-highlight-face))
+          (overlay-put python-cell-overlay 'face 'python-cell-highlight-face))
         (overlay-put python-cell-overlay
                      'window (unless python-cell-sticky-flag (selected-window)))
         (python-cell-move python-cell-overlay))
@@ -242,7 +269,7 @@ It should return nil if there's no region to be highlighted."
 ;;;###autoload
 (define-minor-mode python-cell-mode
   "Highlight MATLAB-like cells and navigate between them."
-  nil " python:cell" python-cell-mode-map
+  nil " pycell" python-cell-mode-map
   (let ((arg `((,python-cell-cellbreak-regexp 1 'python-cell-cellbreak-face prepend))))
     (if (not python-cell-mode) ;; OFF
         (font-lock-remove-keywords nil arg)
