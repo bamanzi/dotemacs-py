@@ -315,6 +315,30 @@
 ;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
+;; make `python-shell-send-region' work for indented block
+(eval-after-load "python"
+  `(when (and (fboundp 'python-shell-send-region)
+              (string= emacs-version "24.3")) ;; FIXME: any other version?
+
+     (defun python-shell-send-region (start end)
+       "Send the region delimited by START and END to inferior Python process."
+       (interactive "r")
+       (let* (
+              (line-num (line-number-at-pos start))
+              (selection (buffer-substring start end))
+              (indented (string= (substring selection 0 2) "  "))
+              (content (if indented
+                           (concat
+                            ;; When sending a region, add blank lines for non sent code so
+                            ;; backtraces remain correct.
+                            (make-string (- line-num 2) ?\n)
+                            "if True:\n"
+                            selection)
+                         (concat (make-string (1- line-num) ?\n)
+                                 selection))))
+         (python-shell-send-string content  nil t)))
+     ))
+
 ;; *** python-cell
 (autoload 'python-cell-mode "python-cell"
   "Highlight MATLAB-like cells and navigate between them." t)
