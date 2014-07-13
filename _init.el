@@ -122,17 +122,33 @@
 
 ;; ** code completion
 ;; *** auto-complete front-end for GNU Emacs built-in completion
-(defun python-symbol-completions-maybe (prefix)
+;;disadvantages:
+;;   - inferior python process (`run-python') needed
+;;   - you need to type code or to 'send region' to make module/object inspectable
+;;advantages:
+;;   - no other installation / configuration /setup needed
+;;   
+
+(defun python-ac-candidates--builtin-python-el (prefix)
   (let ((python-el (symbol-file major-mode)))
     (if (string-match "lisp/progmodes/python.el" python-el) ;;Emacs builtin python.el
-        (python-symbol-completions prefix)
-      nil) ;;otherwise, return nil
-    ))
+        (if (functionp 'python-symbol-completions)          ;; ? - v23.2
+            (python-symbol-completions prefix)
+          (if (and (functionp 'python-shell-completion--get-completions) ;; v23.3 - ?
+                   (python-shell-get-process)) ;; Note: `run-python' needed
+              (python-shell-completion--get-completions (python-shell-get-process)
+                                                       (buffer-substring-no-properties (line-beginning-position) (point))
+                                                       prefix)
+            (if (and (functionp 'python-shell-completion-get-completions) ;; ? - v24.3
+                     (python-shell-get-process)) ;; Note: `run-python' needed
+                (python-shell-completion-get-completions (python-shell-get-process)
+                                                         (buffer-substring-no-properties (line-beginning-position) (point))
+                                                         prefix)))))))
 
 (eval-after-load "auto-complete"
   `(progn
     (ac-define-source python-builtin
-      '( (candidates . (python-symbol-completions-maybe ac-prefix))
+      '( (candidates . (python-ac-candidates--builtin-python-el ac-prefix))
          (symbol . "py")
          (prefix . "[ \t\n['\",()]\\([^\t\n['\",()]+\\)\\=") ))
 
@@ -362,6 +378,12 @@
   "Undocumented." t)
 
 (defalias 'pyflakes 'flymake-python-pyflakes-load)
+
+(eval-after-load "flymake-python-pyflakes"
+  `(progn
+     (ad-disable-advice 'flymake-mode 'around 'flycheck-flymake-mode) ;;FIXME: not work?
+     (ad-deactivate 'flymake-mode)
+     ))
 
 ;; *** pychecker
 
