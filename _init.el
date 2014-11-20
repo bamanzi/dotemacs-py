@@ -454,6 +454,23 @@
      ))
 
 
+;; ** ein: ipython notebook
+;; http://tkf.github.io/emacs-ipython-notebook/
+(add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
+
+(setq ein:use-auto-complete t)
+;; Or, to enable "superpack" (a little bit hacky improvements):
+;; (setq ein:use-auto-complete-superpack t)
+
+(if (require 'ein nil t)
+    (progn
+      (message "EIN loaded. Now you can start to use IPython Notebook with:")
+      (message "  `ein:notebooklist-open' - Open notebook list buffer.")
+      (message "  `ein:junk-new' - Open a notebook to try random thing.")
+      )
+  (message "Failed to load package `ein'"))
+
+
 ;; ** misc
 ;; By default, Emacs inhibits (for `run-python') the loading of Python
 ;; modules from the current working directory, for security reasons.
