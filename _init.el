@@ -207,6 +207,22 @@
 
   
 ;; ** document lookup
+;; *** pythonXXX.chm
+(setq python-install-dir nil)
+(defun python.chm (keyword)
+   "Open python.chm (with keyhh.exe) and try to lookup current symbol."
+   (interactive "sHelp on keyword: ")
+   (unless python-install-dir
+     (setq python-install-dir
+           (shell-command-to-string "python -c \"import sys; sys.stdout.write(sys.prefix)\"")))
+   (let ((files (directory-files (concat python-install-dir "\\doc") 'full "python.*.chm")))
+     (when files
+         (start-process "keyhh" nil "keyhh.exe"
+                        "-Emacs"  ;;(concat "-" mode-name) ;; use mode name as ID
+                        "-#klink" (format "'%s'" keyword)
+                        (car files))
+         (set-process-query-on-exit-flag (get-process "keyhh") nil))))
+
 ;; *** python.info
 ;; (eval-after-load "pydoc-info"
 ;;   `(progn
