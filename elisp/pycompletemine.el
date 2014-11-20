@@ -1,4 +1,4 @@
-;;; Complete symbols at point using Pymacs.
+;;; pycompletemine.el -- Complete symbols at point using Pymacs.
 
 ;; Copyright (C) 2007  Skip Montanaro
 
@@ -17,10 +17,11 @@
 ;; symbols within the current buffer.  See pycomplete.py for the Python side
 ;; of things and a short description of what to expect.
 
+;;; Code
 (require 'python) ;;FIXME: it seems that this package also works on python-mode.el
 (require 'pymacs)
 
-(pymacs-load "pycomplete")
+;;(pymacs-load "pycomplete")
 
 (when (not (boundp 'py-dotted-expression-syntax-table))
   (setq py-dotted-expression-syntax-table
@@ -30,6 +31,7 @@
   (modify-syntax-entry ?_ "_" py-dotted-expression-syntax-table)
   (modify-syntax-entry ?. "_" py-dotted-expression-syntax-table))
 
+;;; internal functions
 (defun py-symbol-near-point ()
   "Return the first textual item to the nearest point."
   ;; alg stolen from etag.el
@@ -95,9 +97,8 @@
   "Regular expression matching a python identifier.")
 
 
-;;; regular expressions regarding import statetment
-;;; based on Python Grammar
-
+;; regular expressions regarding import statetment
+;; based on Python Grammar
 (defconst py-dotted-name-re
   (concat py-identifier "\\([.]" py-identifier "\\)*")
   "Regular expression matching a dotted_name production.")
@@ -255,32 +256,37 @@
       (py-complete-show (format "%s" py-complete-current-signature) 'notip)))
 
 
-(defun py-complete-init-keys (map)
-  (define-key map [M-f1] 'py-complete-help-thing-at-point)
-  (define-key map "("    'py-complete-electric-lparen)
-  (define-key map ","    'py-complete-electric-comma)
-  (define-key map [M-f2] 'py-complete-signature-expr)
-  (define-key map [M-f3] 'py-complete-help)
-  ;;(define-key map "\M-\C-i"  'py-complete)
+;;; user functions
+(defvar py-complete-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "<M-f1>")     'py-complete-help-thing-at-point)
+    (define-key map "("                'py-complete-electric-lparen)
+    (define-key map ","                'py-complete-electric-comma)
+    (define-key map (kbd "C-c <M-f1>") 'py-complete-signature-expr)
+    (define-key map (kbd "C-c <f1>")   'py-complete-help)
+    (define-key map (kbd "C-c TAB")    'py-complete)
+    map)
+  "Keymap for py-complete minor mode."
   )
 
-(py-complete-init-keys python-mode-map)
+(define-minor-mode py-complete-mode
+  "Minor mode for pycomplete.
 
-(if (and (not (boundp 'python-shell-map))
-         (boundp 'inferior-python-mode-map))
-  (setq  python-shell-map inferior-python-mode-map)) ;; Emacs 24 or fgallina's python.el
-(when (boundp 'python-shell-map)
-  (py-complete-init-keys python-shell-map)
-  (define-key python-shell-map "\C-i" 'py-complete))
+Pymacs required.
 
-(eval-after-load "python-mode"
-  `(progn
-     (when (boundp 'py-mode-map) ;;not in python-mode.el >= 6.0.4
-         (py-complete-init-keys py-mode-map))
-     (when (boundp 'py-shell-map)
-       (py-complete-init-keys py-shell-map)
-       (define-key py-shell-map "\C-i" 'py-complete))
-     ))
+Key bindings:
+\\{{py-complete-mode-map}}"
+  :group 'python
+  :lighter " pyc"
+  :keymap py-complete-mode-map
+  (if py-complete-mode
+      ;; turn off
+      (message "py-complete-mode disabled.")
+    ;; turn on
+    (unless (functionp 'pycomplete-pycomplete)
+      (pymacs-load "pycomplete"))
+    (message "py-complete-mode enabled.")))
      
 
 (provide 'pycompletemine)
+;;; pycompletemine.el ends here
