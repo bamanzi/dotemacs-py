@@ -482,18 +482,22 @@
   "Show vertical lines to guide indentation." t)
 
 (autoload 'highlight-indentation-mode "highlight-indentation" nil t)
+(autoload 'highlight-indentation-current-column-mode "highlight-indentation"
+  "Hilight Indentation minor mode displays" t)
 
 ;; `indent-guide-mode' actually use a char as the guide line,
 ;; thus if you use term's copy method (such as putty's or tmux's),
 ;; maybe `highlight-indentation-mode' is better.
-(defun highlight-indent ()
+(defun highlight-indent-toggle ()
   (interactive)
-  (if (display-graphic-p)
-      (indent-guide-mode)
-    (highlight-indentation-mode)))
+ ;; (if (display-graphic-p)
+ ;;     (indent-guide-mode)
+     (highlight-indentation-current-column-mode)
+ ;;  )
+    )
 
 (eval-after-load "python"
-  `(add-hook 'python-mode-hook 'highlight-indent))
+  `(add-hook 'python-mode-hook 'highlight-indent-toggle))
 
 ;; *** virtualenv
 (autoload 'virtualenv-activate  "virtualenv"
