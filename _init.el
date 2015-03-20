@@ -452,18 +452,28 @@
   (interactive)
   (add-hook 'python-mode-hook 'anaconda-mode)
   (add-hook 'python-mode-hook 'eldoc-mode) ;; what about `python-eldoc-at-point' from python.el?
+
+  (if (require 'ac-anaconda nil t)
+      (ac-anaconda-setup))
   (when (eq major-mode 'python-mode)
     (anaconda-mode 1)
-    (eldoc-mode 1)))
+    (eldoc-mode 1)
+    (if (fboundp 'ac-anaconda-setup)
+        (ac-anaconda-setup))))
 
 (defun anaconda-disable ()
   "Disable `anaconda-mode' in all future Python buffers."
   (interactive)
   (remove-hook 'python-mode-hook 'anaconda-mode)
   (remove-hook 'python-mode-hook 'eldoc-mode)
+      
   (when (eq major-mode 'python-mode)
     (anaconda-mode -1)
-    (eldoc-mode -1)))
+    (eldoc-mode -1)
+    (if (boundp 'ac-source-anaconda)
+        (setq ac-sources (remq 'ac-source-anaconda ac-sources))))
+  )
+    
 
 ;; *** elpy
 ;; https://github.com/jorgenschaefer/elpy
