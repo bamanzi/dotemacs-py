@@ -437,7 +437,39 @@
 ;; *** pychecker
 
 
-;; ** ropemacs
+;; ** code analyze (better support for code completion, go-to-definition)
+;; *** anaconda-mode
+;; https://github.com/proofit404/anaconda-mode
+
+(setq anaconda-mode-server
+      (concat dotemacs-py-dir "python-libs/anaconda_mode.py"))
+
+(autoload 'anaconda-mode "anaconda-mode"
+  "Code navigation, documentation lookup and completion for Python." t)
+
+(defun anaconda-enable ()
+  "Enable `anaconda-mode' in all future Python buffers."
+  (interactive)
+  (add-hook 'python-mode-hook 'anaconda-mode)
+  (add-hook 'python-mode-hook 'eldoc-mode) ;; what about `python-eldoc-at-point' from python.el?
+  (when (eq major-mode 'python-mode)
+    (anaconda-mode 1)
+    (eldoc-mode 1)))
+
+(defun anaconda-disable ()
+  "Disable `anaconda-mode' in all future Python buffers."
+  (interactive)
+  (remove-hook 'python-mode-hook 'anaconda-mode)
+  (remove-hook 'python-mode-hook 'eldoc-mode)
+  (when (eq major-mode 'python-mode)
+    (anaconda-mode -1)
+    (eldoc-mode -1)))
+
+;; *** elpy
+;; https://github.com/jorgenschaefer/elpy
+;; powerful, but a little heavy (too much dependencies)
+
+;; *** ropemacs (seems buggy)
 (setq ropemacs-confirm-saving nil
       ropemacs-guess-project t
       ropemacs-separate-doc-buffer t)
