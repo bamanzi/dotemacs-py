@@ -263,8 +263,17 @@
   )
 
 ;; *** pydoc command line
-;;stolen from http://stackoverflow.com/a/1068731
-(defun pydoc (&optional arg)
+(autoload 'pydoc "pydoc"
+  "Display pydoc information for NAME in a buffer named *pydoc*." t)
+
+(eval-after-load "python"
+  `(progn
+     (define-key python-mode-map (kbd "C-c <C-f1>") 'pydoc)
+     ))
+
+
+;;a simple version, stolen from http://stackoverflow.com/a/1068731
+(defun pydoc- (&optional arg)
   (interactive (list
 				(read-string "Call pydoc with arg: "
 							 (with-syntax-table python-dotty-syntax-table
