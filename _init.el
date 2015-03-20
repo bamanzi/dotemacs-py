@@ -463,6 +463,15 @@
      ))
 
 
+;; ** virtualenv
+(autoload 'pyvenv-activate "pyvenv"
+  "Activate the virtual environment in DIRECTORY." t)
+
+;; work with virtuanenvwrapper envs (all envs in one foldr)
+(autoload 'pyvenv-workon "pyvenv"
+  "Activate a virtual environment from $WORKON_HOME." t)
+
+
 ;; ** ein: ipython notebook
 ;; http://tkf.github.io/emacs-ipython-notebook/
 (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
@@ -508,7 +517,4 @@
 (eval-after-load "python"
   `(add-hook 'python-mode-hook 'highlight-indent-toggle))
 
-;; *** virtualenv
-(autoload 'virtualenv-activate  "virtualenv"
-  "Activate the virtualenv located in DIR" t)
 
