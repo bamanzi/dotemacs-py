@@ -368,9 +368,11 @@
 (autoload 'python-cell-mode "python-cell"
   "Highlight MATLAB-like cells and navigate between them." t)
 
-(eval-after-load "python"
+;; (add-hook 'python-mode-hook 'python-cell-mode)
+
+(eval-after-load "python-cell"
   `(progn
-     (add-hook 'python-mode-hook 'python-cell-mode)
+     (define-key python-mode-map (kbd "C-c RET") 'python-shell-send-cell)
 
      ;; use a darker background color for CELL
      (setq python-cell-highlight-face 'fringe)
