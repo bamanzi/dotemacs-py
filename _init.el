@@ -173,21 +173,15 @@
 
 (eval-after-load "pycompletemine"
   `(progn
-     ;;use auto-complete as frond-end
-     (defun py-complete-get-help-short (prefix)
-       (let ((result (py-complete-help prefix)))
-         (if (> (length result) 300)
-             (substring result 0 300)
-           result)))
+     (pymacs-load "pycomplete")
      
+     ;;add auto-complete frond-end     
      (when (and (featurep 'auto-complete)
                 ;;need pycompletemine.el/pycomplete.py hacked by myself
                 (fboundp 'pycomplete-get-all-completions-for-ac))
        
-       (defun py-complete-help-short (str1)
-         (let ((result (if (fboundp 'py-complete-get-help)
-                           (py-complete-get-help str1)
-                         (py-complete-help str1))))
+       (defun py-complete-get-help-short (prefix)
+         (let ((result (py-complete-get-help prefix)))
            (if (> (length result) 300)
                (substring result 0 300)
              result)))
@@ -201,9 +195,8 @@
        
        (add-hook 'python-mode-hook
                  #'(lambda ()
-                     (add-to-list 'ac-sources 'ac-source-pycompletemine)))
-       )))
-
+                     (add-to-list 'ac-sources 'ac-source-pycompletemine))))
+     ))
 
   
 ;; ** document lookup
@@ -574,61 +567,50 @@
 ;; *** enhance the menu
 (eval-after-load "python"
   `(progn
-     (let ((python-menu-map (lookup-key python-mode-map [menu-bar Python])))  
-       (define-key-after python-menu-map [nil-7182] '("---"))
-       (define-key-after python-menu-map [pydoc-menu] 
-         '(menu-item "Pydoc on symbol..." pydoc
-                     :help "Call `pydoc' command line utility."))
-       (define-key-after python-menu-map [pyinfo-menu] 
-         '(menu-item "Info on symbol..." anything-info-python
-                     :help "Lookup document in file `python.info'."))
-       
-       (define-key-after python-menu-map [highlight-indent-menu] 
-         '(menu-item "Highlight Indentation" highlight-indentation-current-column-mode
-                     :help "Highlight indentation with a vertical bar."
-                     :button (:toggle . (and (boundp 'highlight-indentation-current-column-mode)
-                                                     highlight-indentation-current-column-mode))))
-       (define-key-after python-menu-map [python-cell-menu] 
-         '(menu-item "Python Cell mode" python-cell-mode
-                     :help "Highlight MATLAB-like cells and navigate between them."
-                     :button (:toggle . (and (boundp 'python-cell-mode)
-                                                     python-cell-mode))))
-       (define-key-after python-menu-map [auto-completel-menu] 
-         '(menu-item "Auto-Complete mode" auto-complete-mode
-                     :help "Toggle auto-complete mode."
-                     :button (:toggle . (and (boundp 'auto-complete-mode)
-                                                     auto-complete-mode))))
-       
-      ;; project
-       (define-key-after python-menu-map [nil-7188] '("---"))
-       (define-key-after python-menu-map [pyvenv-menu] 
-         '(menu-item "Activate virtual environment..." pyvenv-activate
-                     :help "Activate the virtual environment in DIRECTORY."
-                     :button (:toggle . (and (boundp 'pyvenv-virtual-env)
-                                                     pyvenv-virtual-env))))
-       (define-key-after python-menu-map [anaconda-menu] 
-         '(menu-item "Toggle anaconda-mode" toggle-anaconda-mode
-                     :help "Enable anaconda-mode for better support for navigation & completion"
-                     :button (:toggle . (and (boundp 'anaconda-mode)
-                                                     anaconda-mode))))
-       (define-key-after python-menu-map [anaconda-goto-def-menu] 
-         '(menu-item "  Goto definition" anaconda-mode-goto-definitions
-                     :help "Goto definition for thing at point."
-                     :enable (and (boundp 'anaconda-mode)
-                                                     anaconda-mode)))
-       (define-key-after python-menu-map [anaconda-go-back-menu] 
-         '(menu-item "  Go back" anaconda-nav-pop-marker
-                     :help "Switch to buffer of most recent marker."
-                     :enable (and (boundp 'anaconda-mode）
-                                                     anaconda-mode))))
-       (define-key-after python-menu-map [anaconda-view-doc-menu] 
-         '(menu-item "  View document" anaconda-mode-view-doc
-                     :help "Show documentation for context at point."
-                     :enable (and (boundp 'anaconda-mode）
-                                                     anaconda-mode))))
-       (define-key-after python-menu-map [anaconda-view-usages-menu] 
-         '(menu-item "  View usages" anaconda-mode-usages
-                     :help "Show usages for thing at point."
-                     :enable (and (boundp 'anaconda-mode）
-                                                     anaconda-mode))))
-  )))
+     (setq python-plus-menu
+      '("Python+"
+        ["Pydoc on symbol..." pydoc
+         :help "Call `pydoc' command line utility."]
+        ["Info on symbol..." anything-info-python
+         :help "Lookup document in file `python.info'."]
+        ["Highlight Indentation" highlight-indentation-current-column-mode
+         :help "Highlight indentation with a vertical bar."
+         :style toggle
+         :selected (and (boundp 'highlight-indentation-current-column-mode)
+                        (or highlight-indentation-mode highlight-indentation-current-column-mode))]
+        ["Python Cell mode" python-cell-mode
+         :help "Highlight MATLAB-like cells and navigate between them."
+         :style toggle
+         :selected (bound-and-true-p python-cell-mode)]
+        ["Auto-Complete mode" auto-complete-mode
+           :help "Toggle auto-complete mode."
+           :style toggle
+           :selected (bound-and-true-p auto-complete-mode)]
+        ;; project        
+        "---"
+        ["Activate virtual environment..." pyvenv-activate
+         :help "Activate the virtual environment in DIRECTORY."
+         :style toggle
+         :selected (bound-and-true-p pyvenv-virtual-env)]
+     
+         ["Toggle anaconda-mode" toggle-anaconda-mode
+           :help "Enable anaconda-mode for better support for navigation & completion"
+           :style toggle
+           :selected (bound-and-true-p anaconda-mode)]
+          ["  Goto definition" anaconda-mode-goto-definitions
+           :help "Goto definition for thing at point."
+           :enable (bound-and-true-p anaconda-mode)]
+          ["  Go back" anaconda-nav-pop-marker
+           :help "Switch to buffer of most recent marker."
+           :enable (bound-and-true-p anaconda-mode)]
+          ["  View document" anaconda-mode-view-doc
+           :help "Show documentation for context at point."
+           :enable (bound-and-true-p anaconda-mode)]
+          ["  View usages" anaconda-mode-usages
+           :help "Show usages for thing at point."
+           :enable (bound-and-true-p anaconda-mode)]))
+      
+      (easy-menu-define python-plus-menubar python-mode-map
+        "Addtional commands for `python-mode'."
+        python-plus-menu)     
+  ))
