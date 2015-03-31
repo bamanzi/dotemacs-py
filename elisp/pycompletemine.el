@@ -87,6 +87,12 @@
              (display-completion-list completions))
            (message "Making completion list...%s" "done")))))
 
+(defun py-complete-exec-region (begin end)
+  "Exec selected lines in pymacs' global namespace. so that later
+  completion have better inspection."
+  (interactive "r")
+  (pycomplete-exec-lines (buffer-substring-no-properties begin end)))
+
 ;; (define-key py-mode-map "\M-\C-i"  'py-complete)
 
 (defconst pycomplete-version "$Revision: 100 $"

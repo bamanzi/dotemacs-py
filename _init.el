@@ -168,7 +168,6 @@
 ;;   + doc info and signature for completions
 ;;disadvantages:
 ;;   - `pymacs' needed
-;;   - no 'send region' support, thus no completion for dynamic object
 
 (eval-after-load "pymacs"
   `(require 'pycompletemine nil t)
@@ -624,6 +623,9 @@
           :help "Toogle py-complete-mode for keybindings in `py-complete-mode-map'."
           :style toggle
           :selected (bound-and-true-p py-complete-mode)]
+         ["exec selected region in pymacs" py-complete-exec-region
+          :help "Exec selected region in pymacs in order to gain better inspection/completion."
+          :enable (fboundp 'pycomplete-exec-lines)]
          "---"
          ["complete symbol at point"    py-complete
           :enable (fboundp 'pycomplete-pycomplete)]
