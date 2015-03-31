@@ -582,10 +582,37 @@
          :help "Highlight MATLAB-like cells and navigate between them."
          :style toggle
          :selected (bound-and-true-p python-cell-mode)]
-        ["Auto-Complete mode" auto-complete-mode
+        ("Auto Complete"
+         ["Toggle Auto-Complete mode" auto-complete-mode
            :help "Toggle auto-complete mode."
            :style toggle
            :selected (bound-and-true-p auto-complete-mode)]
+         ["complete symbol at point" auto-complete
+          :help "Start auto-completion at current point (use this if `ac-auto-start' set to nil)"]
+         "---"
+         ["ac-source-python-builtin" #'(lambda ()
+                                         (interactive)
+                                         (if (and (not (memq 'ac-source-python-builtin ac-sources))
+                                                  (not (python-shell-get-process)))
+                                             (call-interactively 'run-python))
+                                         (ac-toggle-source 'ac-source-python-builtin))
+          :help "use completion method in GNU Emacs' python.el (a running python shell required)"
+          :style toggle
+          :selected (memq 'ac-source-python-builtin ac-sources)]
+         ["ac-source-pycomplete" #'(lambda()
+                                     (interactive)
+                                     (require 'pycompletemine)
+                                     (unless (fboundp 'pycomplete-pycomplete)
+                                       (pymacs-load "pycomplete"))
+                                     (ac-toggle-source 'ac-source-pycompletemine))
+          :help "use `pycompletemine' as completion back-end (`pymacs' needed)"
+          :style toggle
+          :selected (memq 'ac-source-pycompletemine ac-sources)]
+         ["ac-source-anaconda" (ac-toggle-source 'ac-source-anaconda)
+          :help "use `anaconda-mode' as completion back-end (`ac-anaconda' needed)"
+          :style toggle
+          :selected (memq 'ac-source-anaconda ac-sources)])
+        
         ;; project        
         "---"
         ["Activate virtual environment..." pyvenv-activate
@@ -597,20 +624,20 @@
            :help "Enable anaconda-mode for better support for navigation & completion"
            :style toggle
            :selected (bound-and-true-p anaconda-mode)]
-          ["  Goto definition" anaconda-mode-goto-definitions
+          ["   Goto definition" anaconda-mode-goto-definitions
            :help "Goto definition for thing at point."
            :enable (bound-and-true-p anaconda-mode)]
-          ["  Go back" anaconda-nav-pop-marker
+          ["   Go back" anaconda-nav-pop-marker
            :help "Switch to buffer of most recent marker."
            :enable (bound-and-true-p anaconda-mode)]
-          ["  View document" anaconda-mode-view-doc
+          ["   View document" anaconda-mode-view-doc
            :help "Show documentation for context at point."
            :enable (bound-and-true-p anaconda-mode)]
-          ["  View usages" anaconda-mode-usages
+          ["   View usages" anaconda-mode-usages
            :help "Show usages for thing at point."
            :enable (bound-and-true-p anaconda-mode)]))
       
       (easy-menu-define python-plus-menubar python-mode-map
         "Addtional commands for `python-mode'."
-        python-plus-menu)     
+        python-plus-menu)
   ))
