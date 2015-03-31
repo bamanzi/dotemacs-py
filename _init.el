@@ -81,6 +81,9 @@
   `(require 'pymacs)  ;;load `pymacs', for `pymacs-autoload'
   )
 
+(autoload 'py-complete-mode "pycompletemine"
+  "Minor mode for pycomplete." t)
+
 ;; ** code folding
 (eval-after-load "python"
   `(progn
@@ -612,14 +615,31 @@
           :help "use `anaconda-mode' as completion back-end (`ac-anaconda' needed)"
           :style toggle
           :selected (memq 'ac-source-anaconda ac-sources)])
-        
+        ("pycomplete"
+         ["load pymacs + pycomplete" (progn
+                                       (pymacs-load "pycomplete")
+                                       (require 'pycompletemine))
+          :visible (not (fboundp 'pycomplete-pycomplete))]
+         ["py-complete-mode"            py-complete-mode
+          :help "Toogle py-complete-mode for keybindings in `py-complete-mode-map'."
+          :style toggle
+          :selected (bound-and-true-p py-complete-mode)]
+         "---"
+         ["complete symbol at point"    py-complete
+          :enable (fboundp 'pycomplete-pycomplete)]
+         ["help on symbol at point"     py-complete-help-thing-at-point
+          :enable (fboundp 'pycomplete-pyhelp)]
+         ["help on symbol..."           py-complete-help
+          :enable (fboundp 'pycomplete-pyhelp)]
+         ["show signature on symbol at point"  py-complete-signature-expr
+          :enable (fboundp 'pycomplete-pysignature)]
+         )
         ;; project        
         "---"
         ["Activate virtual environment..." pyvenv-activate
          :help "Activate the virtual environment in DIRECTORY."
          :style toggle
          :selected (bound-and-true-p pyvenv-virtual-env)]
-     
          ["Toggle anaconda-mode" toggle-anaconda-mode
            :help "Enable anaconda-mode for better support for navigation & completion"
            :style toggle
