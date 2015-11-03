@@ -354,6 +354,13 @@
            (gud-query-cmdline 'pdb))))
   (pdb cmdline))
 
+(defun pdbpp (cmdline)
+  "Invoke `gud-pdb' with `pdbpp' (https://pypi.python.org/pypi/pdbpp) "
+  (interactive
+   (list (let ((gud-pdb-command-name "pdbpp"))
+           (require 'gud)
+           (gud-query-cmdline 'pdb))))
+  (pdb cmdline))
 
 ;; *** pdb, pydb, pydbgr (realgud)
 
@@ -665,8 +672,11 @@
           :help "Insert 'import pdb; pdb.set_trace()' at current line."]
          ["insert ipdb breakpoint" python-add-ipdb-breakpoint
           :help "Insert 'import ipdb; ipdb.set_trace()' at current line."]
+         "---"
          ["debug with pdb + gud.el" pdb
           :help "launch debugger with pdb + gud.el"]
+         ["debug with pdbp++ + gud.el" pdbpp
+          :help "launch debugger with pdb++ + gud.el"]
          ["debug with ipdb + gud.el" ipdb
           :help "launch debugger with ipdb + gud.el"]
          )
