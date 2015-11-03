@@ -332,6 +332,29 @@
 ;; ** debug
 ;; *** pdb & ipdb (fgallina's python.el)
 
+(defun python-add-pdb-breakpoint ()
+  "Add a pdb break point statement (pdb.set_trace())"
+  (interactive)
+  (newline-and-indent)
+  (insert "import pdb; pdb.set_trace()")
+  (highlight-lines-matching-regexp "^[ ]*import pdb; pdb.set_trace()"))
+
+(defun python-add-ipdb-breakpoint ()
+  "Add a ipdb break point statement (ipdb.set_trace())"
+  (interactive)
+  (newline-and-indent)
+  (insert "import ipdb; ipdb.set_trace()")
+  (highlight-lines-matching-regexp "^[ ]*import ipdb; ipdb.set_trace()"))
+
+(defun ipdb (cmdline)
+  "Invoke `gud-pdb' with `ipdb' (https://pypi.python.org/pypi/ipdb) "
+  (interactive
+   (list (let ((gud-pdb-command-name "ipdb"))
+           (require 'gud)
+           (gud-query-cmdline 'pdb))))
+  (pdb cmdline))
+
+
 ;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
@@ -575,6 +598,7 @@
          :help "Call `pydoc' command line utility."]
         ["Info on symbol..." anything-info-python
          :help "Lookup document in file `python.info'."]
+        "---"
         ["Highlight Indentation" highlight-indentation-current-column-mode
          :help "Highlight indentation with a vertical bar."
          :style toggle
@@ -635,6 +659,16 @@
           :enable (fboundp 'pycomplete-pyhelp)]
          ["show signature on symbol at point"  py-complete-signature-expr
           :enable (fboundp 'pycomplete-pysignature)]
+         )
+        ("debug"
+         ["insert pdb breakpoint" python-add-pdb-breakpoint
+          :help "Insert 'import pdb; pdb.set_trace()' at current line."]
+         ["insert ipdb breakpoint" python-add-ipdb-breakpoint
+          :help "Insert 'import ipdb; ipdb.set_trace()' at current line."]
+         ["debug with pdb + gud.el" pdb
+          :help "launch debugger with pdb + gud.el"]
+         ["debug with ipdb + gud.el" ipdb
+          :help "launch debugger with ipdb + gud.el"]
          )
         ;; project        
         "---"
