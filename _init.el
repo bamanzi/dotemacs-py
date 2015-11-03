@@ -332,6 +332,7 @@
 ;; ** debug
 ;; *** pdb & ipdb (fgallina's python.el)
 
+;; stolen from http://wenshanren.org/?p=351
 (defun python-add-pdb-breakpoint ()
   "Add a pdb break point statement (pdb.set_trace())"
   (interactive)
@@ -365,6 +366,16 @@
 ;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
+;; stolen from http://wenshanren.org/?p=351
+(defun python-insert-interactive-stmt ()
+  "Insert 'import code; code.interact(local=vars())' at current position."
+  (interactive)
+  (newline-and-indent)
+  (insert "import code; code.interact(local=vars())")
+  (move-end-of-line 1)
+  (if (get-buffer-process (current-buffer))
+      (comint-send-input)))
+
 ;; make `python-shell-send-region' work for indented block
 (eval-after-load "python"
   `(when (and (fboundp 'python-shell-send-region)
@@ -679,6 +690,8 @@
           :help "launch debugger with pdb++ + gud.el"]
          ["debug with ipdb + gud.el" ipdb
           :help "launch debugger with ipdb + gud.el"]
+         "---"
+         ["insert 'code.interact()' here" python-insert-interactive-stmt]
          )
         ;; project        
         "---"
