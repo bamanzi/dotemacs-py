@@ -14,5 +14,8 @@ File: dir,	Node: Top	This is the top of the INFO tree
 
 * Menu:
 
+Python
+* Python: (python3.info).       The Python reference manual.
+
 Software Development
 * Python: (python.info).        The Python Documentation
