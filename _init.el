@@ -260,6 +260,10 @@
 ;; *** pydoc command line
 (autoload 'pydoc "pydoc"
   "Display pydoc information for NAME in a buffer named *pydoc*." t)
+(autoload 'pydoc-at-point "pydoc"
+  "Try to get help for thing at point." t)
+(autoload 'pydoc-browse "pydoc"
+  "Open a browser to pydoc." t)
 
 (eval-after-load "python"
   `(progn
