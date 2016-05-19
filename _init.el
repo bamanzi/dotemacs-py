@@ -377,7 +377,6 @@
      
      (define-key python-mode-map (kbd "<f9> d")   'python-shell-send-defun)
      (define-key python-mode-map (kbd "<f9> SPC") 'python-shell-send-region)
-     
      ))
 
 ;; make `python-shell-send-region' work for indented block
@@ -414,9 +413,58 @@
   (if (get-buffer-process (current-buffer))
       (comint-send-input)))
 
-;; *** python-cell
-(autoload 'python-cell-mode "python-cell"
-  "Highlight MATLAB-like cells and navigate between them." t)
+;; *** python-x (more python-shell-send-xxx commands)
+;; section: delimited by comments starting with "# ---";
+;; fold: defined by "# {{{" and "# }}}"
+(autoload 'python-shell-send-fold-or-section "python-x"
+  "Send the section of code at point to the inferior Python process, up to the" t)
+
+(autoload 'python-shell-send-line-and-step "python-x"
+  "Send the current line (with any remaining continuations) to the inferior Python process," t)
+(autoload 'python-shell-print-region-or-symbol "python-x"
+  "Send the current region to the inferior Python process, if active; otherwise" t)
+
+(eval-after-load "python"
+  `(progn     
+     (define-key python-mode-map (kbd "<f9> -")   'python-shell-send-fold-or-section)
+     (define-key python-mode-map (kbd "<f9> {")   'python-shell-send-fold-or-section)
+     
+     (define-key python-mode-map (kbd "<f9> l")   'python-shell-send-line-and-step)
+     (define-key python-mode-map (kbd "<f9> @")   'python-shell-print-region-or-symbol)
+
+     (unless (fboundp 'python-info-encoding)
+       ;; backported from emacs-25
+       (defun python-info-encoding-from-cookie ()
+         "Detect current buffer's encoding from its coding cookie.
+Returns the encoding as a symbol."
+         (let ((first-two-lines
+                (save-excursion
+                  (save-restriction
+                    (widen)
+                    (goto-char (point-min))
+                    (forward-line 2)
+                    (buffer-substring-no-properties
+                     (point)
+                     (point-min))))))
+           (when (string-match (python-rx coding-cookie) first-two-lines)
+             (intern (match-string-no-properties 1 first-two-lines)))))
+
+       (defun python-info-encoding ()
+         "Return encoding for file.
+Try `python-info-encoding-from-cookie', if none is found then
+default to utf-8."
+         ;; If no encoding is defined, then it's safe to use UTF-8: Python 2
+         ;; uses ASCII as default while Python 3 uses UTF-8.  This means that
+         ;; in the worst case scenario python.el will make things work for
+         ;; Python 2 files with unicode data and no encoding defined.
+         (or (python-info-encoding-from-cookie)
+             'utf-8))
+       )))
+
+
+  ;; *** python-cell
+  (autoload 'python-cell-mode "python-cell"
+    "Highlight MATLAB-like cells and navigate between them." t)
 
 ;; (add-hook 'python-mode-hook 'python-cell-mode)
 
@@ -456,7 +504,7 @@
                                  (file-name-nondirectory (buffer-file-name))))
         (compilation-ask-about-save nil))
     (call-interactively 'compile)  
-  ))
+    ))
 
 ;; *** pylint
 (autoload 'python-pylint "python-pylint"
@@ -471,7 +519,7 @@
                                  (file-name-nondirectory (buffer-file-name))))
         (compilation-ask-about-save nil))
     (call-interactively 'compile)  
-  ))
+    ))
 
 ;; *** pyflakes
 ;;FIXME: when `flycheck' loaded, flymake might not work
@@ -518,7 +566,7 @@
   (interactive)
   (remove-hook 'python-mode-hook 'anaconda-mode)
   (remove-hook 'python-mode-hook 'eldoc-mode)
-      
+  
   (when (eq major-mode 'python-mode)
     (anaconda-mode -1)
     (eldoc-mode -1)
@@ -534,7 +582,7 @@
     (anaconda-enable))
   (message "Anaconda-mode %s for current and future python buffers."
            (if anaconda-mode "enabled" "disabled")))
-    
+
 
 ;; *** elpy
 ;; https://github.com/jorgenschaefer/elpy
@@ -611,20 +659,18 @@
 ;; maybe `highlight-indentation-mode' is better.
 (defun highlight-indent-toggle ()
   (interactive)
- ;; (if (display-graphic-p)
- ;;     (indent-guide-mode)
-     (highlight-indentation-current-column-mode)
- ;;  )
-    )
+  ;; (if (display-graphic-p)
+  ;;     (indent-guide-mode)
+  (highlight-indentation-current-column-mode)
+  ;;  )
+  )
 
 (eval-after-load "python"
   `(add-hook 'python-mode-hook 'highlight-indent-toggle))
 
 
 ;; *** enhance the menu
-(eval-after-load "python"
-  `(progn
-     (setq python-plus-menu
+(setq python-plus-menu
       '("Python+"
         ["Pydoc on symbol..." pydoc
          :help "Call `pydoc' command line utility."]
@@ -642,9 +688,9 @@
          :selected (bound-and-true-p python-cell-mode)]
         ("Auto Complete"
          ["Toggle Auto-Complete mode" auto-complete-mode
-           :help "Toggle auto-complete mode."
-           :style toggle
-           :selected (bound-and-true-p auto-complete-mode)]
+          :help "Toggle auto-complete mode."
+          :style toggle
+          :selected (bound-and-true-p auto-complete-mode)]
          ["complete symbol at point" auto-complete
           :help "Start auto-completion at current point (use this if `ac-auto-start' set to nil)"]
          "---"
@@ -713,24 +759,26 @@
          :help "Activate the virtual environment in DIRECTORY."
          :style toggle
          :selected (bound-and-true-p pyvenv-virtual-env)]
-         ["Toggle anaconda-mode" toggle-anaconda-mode
-           :help "Enable anaconda-mode for better support for navigation & completion"
-           :style toggle
-           :selected (bound-and-true-p anaconda-mode)]
-          ["   Goto definition" anaconda-mode-goto-definitions
-           :help "Goto definition for thing at point."
-           :enable (bound-and-true-p anaconda-mode)]
-          ["   Go back" anaconda-nav-pop-marker
-           :help "Switch to buffer of most recent marker."
-           :enable (bound-and-true-p anaconda-mode)]
-          ["   View document" anaconda-mode-view-doc
-           :help "Show documentation for context at point."
-           :enable (bound-and-true-p anaconda-mode)]
-          ["   View usages" anaconda-mode-usages
-           :help "Show usages for thing at point."
-           :enable (bound-and-true-p anaconda-mode)]))
-      
-      (easy-menu-define python-plus-menubar python-mode-map
-        "Addtional commands for `python-mode'."
-        python-plus-menu)
-  ))
+        ["Toggle anaconda-mode" toggle-anaconda-mode
+         :help "Enable anaconda-mode for better support for navigation & completion"
+         :style toggle
+         :selected (bound-and-true-p anaconda-mode)]
+        ["   Goto definition" anaconda-mode-goto-definitions
+         :help "Goto definition for thing at point."
+         :enable (bound-and-true-p anaconda-mode)]
+        ["   Go back" anaconda-nav-pop-marker
+         :help "Switch to buffer of most recent marker."
+         :enable (bound-and-true-p anaconda-mode)]
+        ["   View document" anaconda-mode-view-doc
+         :help "Show documentation for context at point."
+         :enable (bound-and-true-p anaconda-mode)]
+        ["   View usages" anaconda-mode-usages
+         :help "Show usages for thing at point."
+         :enable (bound-and-true-p anaconda-mode)]))
+
+(eval-after-load "python"
+  `(progn
+     (easy-menu-define python-plus-menubar python-mode-map
+       "Addtional commands for `python-mode'."
+       python-plus-menu)
+     ))
