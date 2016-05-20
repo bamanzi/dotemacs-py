@@ -53,6 +53,13 @@
                                            "\\Scripts\\ipython-script.py")))
   )
 
+(eval-after-load "cheatsheet"
+  `(progn
+     (cheatsheet-add :group 'Python
+                     :key "M-x setup-ipython"
+                     :description "Switch to use ipython as inferior python interpreter.")
+     ))
+
 ;; ** get rid of cedet
 (eval-after-load "python"
   `(progn
@@ -632,7 +639,15 @@ default to utf-8."
 ;; (setq ein:use-auto-complete-superpack t)
 
 (if (require 'ein nil t)
-    (progn
+    (if (fboundp 'cheatsheet-add)
+        (progn
+          (cheatsheet-add :group 'Python
+                          :key "M-x ein:notebooklist-open"
+                          :description "emacs-ipython-notebook: Open notebook list buffer.")
+          (cheatsheet-add :group 'Python
+                          :key "M-x ein:junk-new"
+                          :description "emacs-ipython-notebook: Open a notebook to try random thing.")
+          )
       (message "EIN loaded. Now you can start to use IPython Notebook with:")
       (message "  `ein:notebooklist-open' - Open notebook list buffer.")
       (message "  `ein:junk-new' - Open a notebook to try random thing.")
