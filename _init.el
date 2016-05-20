@@ -646,6 +646,25 @@ default to utf-8."
 ;; To disable it:
 ;;(setq python-remove-cwd-from-path nil)
 
+;; *** compilation (make traceback lines clickable)
+
+(eval-after-load "compile"
+  `(progn
+     (unless (assoc 'python-tracebacks-and-caml compilation-error-regexp-alist-alist)
+       ;; emacs >= 24.1 already has this (in compile.el)
+       (add-to-list 'compilation-error-regexp-alist-alist
+                    '(python-tracebacks-and-caml
+                      "^[ \t]*File \\(\"?\\)\\([^,\" \n\t<>]+\\)\\1, lines? \\([0-9]+\\)-?\\([0-9]+\\)?\\(?:$\\|,\
+\\(?: characters? \\([0-9]+\\)-?\\([0-9]+\\)?:\\)?\\([ \n]Warning\\(?: [0-9]+\\)?:\\)?\\)"
+                      2 (3 . 4) (5 . 6) (7))))
+
+     (add-to-list 'compilation-error-regexp-alist 'python-tracebacks-and-caml)
+     ))
+
+;; TODO: support pdb stacktrace & unittest error message
+;; http://permalink.gmane.org/gmane.emacs.python-mode/370
+
+
 ;; *** highlight indentation
 (autoload 'indent-guide-mode  "indent-guide"
   "Show vertical lines to guide indentation." t)
