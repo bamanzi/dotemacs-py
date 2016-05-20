@@ -108,10 +108,12 @@ Here are interactive commands available with anaconda-mode
 ==========  ==============================
 Keybinding  Description
 ==========  ==============================
-M-.         anaconda-mode-goto-definitions
-M-*         anaconda-nav-pop-marker
-M-?         anaconda-mode-view-doc
-M-r         anaconda-mode-usages
+C-M-i       anaconda-mode-complete
+M-.         anaconda-mode-find-definitions
+M-,         anaconda-mode-find-assignments
+M-r         anaconda-mode-find-references
+M-*         anaconda-mode-go-back
+M-?         anaconda-mode-show-doc
 ==========  ==============================
 
 If goto definitions, assignments or usages cause multiple candidates
@@ -175,6 +177,9 @@ issue.
 Issues
 ------
 
+DistutilsOptionError
+````````````````````
+
 ::
 
     DistutilsOptionError: must supply either home or prefix/exec-prefix -- not both
@@ -189,6 +194,18 @@ issue.
   <https://github.com/proofit404/anaconda-mode/blob/master/requirements.txt>`_
   manually
 - remove ``prefix`` option from ``distutils.cfg``
+
+AttributeError and KeyError randomly happens
+````````````````````````````````````````````
+
+This kind of problems were reported with jedi 0.9 version.  You can
+try to downgrade jedi version down to 0.8.
+
+::
+
+   M-x find-library RET anaconda-mode RET
+   M-! rm -rf jedi* RET
+   M-! pip install "jedi<0.9" -t . RET
 
 Contributions
 -------------
