@@ -464,11 +464,14 @@ Adapted from `help-make-xrefs'."
 
 (defun pydoc-user-modules ()
   "Return a list of strings for user-installed modules."
-  (mapcar
-   'symbol-name
-   (read
-    (shell-command-to-string
-     "python -c \"import pip; mods = sorted([i.key for i in pip.get_installed_distributions()]); print('({})'.format(' '.join(['\"{}\"'.format(x) for x in mods])))  \""))))
+  (if (executable-find "pip")
+      (mapcar
+       'symbol-name
+       (read
+	(shell-command-to-string
+	 "python -c \"import pip; mods = sorted([i.key for i in pip.get_installed_distributions()]); print('({})'.format(' '.join(['\"{}\"'.format(x) for x in mods])))  \"")))
+    (message "pip not found. No user-installed modules found.")
+    '()))
 
 
 (defun pydoc-pkg-modules ()
@@ -482,16 +485,16 @@ Adapted from `help-make-xrefs'."
   "List of topics from the shell command `pydoc topics`."
   (apply
    'append
-   (mapcar (lambda (x) (split-string x " " t " "))
-	   (cdr (split-string  (shell-command-to-string "pydoc topics") "\n" t " ")))))
+   (mapcar (lambda (x) (split-string x " " t))
+	   (cdr (split-string  (shell-command-to-string "python -m pydoc topics") "\n" t)))))
 
 
 (defun pydoc-keywords ()
   "List of topics from the shell command `pydoc keywords`."
   (apply
    'append
-   (mapcar (lambda (x) (split-string x " " t " "))
-	   (cdr (split-string  (shell-command-to-string "pydoc keywords") "\n" t " ")))))
+   (mapcar (lambda (x) (split-string x " " t))
+	   (cdr (split-string  (shell-command-to-string "python -m pydoc keywords") "\n" t)))))
 
 
 (defvar *pydoc-all-modules*
@@ -643,12 +646,19 @@ Execute BODY in the buffer. This is the same as
      ;; Make `help-window-point-marker' point nowhere.  The only place
      ;; where this should be set to a buffer position is within BODY.
      (set-marker help-window-point-marker nil)
-     (let ((temp-buffer-window-setup-hook
-            (cons 'pydoc-mode-setup temp-buffer-window-setup-hook))
-           (temp-buffer-window-show-hook
-            (cons 'pydoc-mode-finish temp-buffer-window-show-hook)))
-       (with-temp-buffer-window
-        ,buffer-name nil 'help-window-setup (progn ,@body)))))
+     (if (boundp 'temp-buffer-window-setup-hook)
+         (let ((temp-buffer-window-setup-hook
+                (cons 'pydoc-mode-setup temp-buffer-window-setup-hook))
+               (temp-buffer-window-show-hook
+                (cons 'pydoc-mode-finish temp-buffer-window-show-hook)))
+           (with-temp-buffer-window
+            ,buffer-name nil 'help-window-setup (progn ,@body)))
+       (with-current-buffer ,buffer-name
+         (erase-buffer)
+         (pydoc-mode-setup)
+         (progn ,@body)
+         (pydoc-mode-finish))
+       (display-buffer ,buffer-name 'not-this-window))))
 
 
 (defun pydoc-buffer ()
@@ -726,8 +736,9 @@ Commands:
 		   pydoc-latex-overlays-4
 		   pydoc-latex-overlays-5
 		   org-display-inline-images))
-	(goto-char (point-min))
-	(funcall f nil)))
+        (goto-char (point-min))
+        (if (fboundp f)
+            (funcall f nil))))
     (setq buffer-read-only t)
     (run-hooks 'pydoc-after-finish-hook)))
 
@@ -818,8 +829,7 @@ OTHER MODULES IN THIS FILE
   "Open a browser to pydoc.
 Attempts to find an open port, and to reuse the process."
   (interactive)
-  (if *pydoc-browser-process*
-      (browse-url (format "http://localhost:%s" *pydoc-browser-port*))
+  (unless *pydoc-browser-process*
     ;; find an open port
     (if (executable-find "lsof")
 	(loop for port from 1025
@@ -829,11 +839,12 @@ Attempts to find an open port, and to reuse the process."
       (setq *pydoc-browser-port* "1234"))
 
     (setq *pydoc-browser-process*
-	  (start-process
-	   "pydoc-browser"
-	   "*pydoc-browser*"
-	   "pydoc" "-p" *pydoc-browser-port* "-b"))))
-
+          (apply
+           #'start-process
+           "pydoc-browser"
+           "*pydoc-browser*"
+           (append (split-string pydoc-command) `("-p" ,*pydoc-browser-port*)))))
+  (browse-url (format "http://localhost:%s" *pydoc-browser-port*)))
 
 ;;;###autoload
 (defun pydoc-browse-kill ()
