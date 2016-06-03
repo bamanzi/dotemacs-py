@@ -277,8 +277,7 @@
      (define-key python-mode-map (kbd "C-c <C-f1>") 'pydoc)
      ))
 
-
-;;a simple version, stolen from http://stackoverflow.com/a/1068731
+;;--- a simple version, stolen from http://stackoverflow.com/a/1068731
 (defun pydoc- (&optional arg)
   (interactive (list
 				(read-string "Call pydoc with arg: "
@@ -296,6 +295,12 @@
     (help-mode))
   (ad-deactivate-regexp "auto-compile-yes-or-no-p-always-yes")
 )
+
+;;--- helm front-end
+;; https://github.com/syohex/emacs-helm-pydoc
+(autoload 'helm-pydoc "helm-pydoc"
+  "Undocumented." t)
+
 
 ;; *** pylookup
 (autoload 'pylookup-lookup "pylookup"
@@ -708,8 +713,10 @@ default to utf-8."
       '("Python+"
         ["Pydoc on symbol..." pydoc
          :help "Call `pydoc' command line utility."]
-        ["Info on symbol..." anything-info-python
-         :help "Lookup document in file `python.info'."]
+        ["Pydoc (helm)..." helm-pydoc
+         :help "Call `pydoc' with helm interface."]
+        ["Info page on symbol..." anything-info-python
+         :help "Lookup document in file `python.info' (with `anything')."]
         "---"
         ["Highlight Indentation" highlight-indentation-current-column-mode
          :help "Highlight indentation with a vertical bar."
