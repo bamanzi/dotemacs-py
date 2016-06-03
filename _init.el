@@ -63,10 +63,12 @@
 ;; ** get rid of cedet
 (eval-after-load "python"
   `(progn
-     (remove-hook 'python-mode-hook 'wisent-python-default-setup)     
+     (remove-hook 'python-mode-hook 'wisent-python-default-setup)
+     (add-hook    'python-mode-hook 'python-kick-semantic-imenu 'append)
      ))
   
-(defun python-reset-imenu ()
+(defun python-kick-semantic-imenu ()
+  "Surpress semantic's imenu-create-index-function for python-mode."
   (interactive)
   (if (fboundp 'setq-mode-local)
       (setq-mode-local python-mode
