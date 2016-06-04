@@ -664,7 +664,7 @@ default to utf-8."
           ;; https://github.com/millejoh/emacs-ipython-notebook
           (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
           (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein/ein-ipy3"))))
-      (if (require 'ein nil t)
+      (if (require 'ein-loaddefs nil t)
           (progn
             (when (fboundp 'cheatsheet-add)
                   (cheatsheet-add :group 'Python
