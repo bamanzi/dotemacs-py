@@ -638,28 +638,46 @@ default to utf-8."
 
 
 ;; ** ein: ipython notebook
-;; http://tkf.github.io/emacs-ipython-notebook/
-(add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
 
 (setq ein:use-auto-complete t)
 ;; Or, to enable "superpack" (a little bit hacky improvements):
 ;; (setq ein:use-auto-complete-superpack t)
 
-(if (require 'ein nil t)
-    (if (fboundp 'cheatsheet-add)
+(if (fboundp 'cheatsheet-add)
+    (progn
+      (cheatsheet-add :group 'Python
+                      :key "M-x ein:notebooklist-open"
+                      :description "emacs-ipython-notebook: Open notebook list buffer.")
+      ))
+
+(defun bmz/enable-emacs-ipython-notebook ()
+  (interactive)
+  (if (not (executable-find "ipython"))
+      (message "No ipython installed. Abort load ein.")
+    (let ((ipython-version (shell-command-to-string "ipython --version")))
+      (if (string< ipython-version "2.0")
+          (progn
+            ;; http://tkf.github.io/emacs-ipython-notebook/
+            (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
+            (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein/ein-ipy1")))
         (progn
-          (cheatsheet-add :group 'Python
-                          :key "M-x ein:notebooklist-open"
-                          :description "emacs-ipython-notebook: Open notebook list buffer.")
-          (cheatsheet-add :group 'Python
-                          :key "M-x ein:junk-new"
-                          :description "emacs-ipython-notebook: Open a notebook to try random thing.")
-          )
-      (message "EIN loaded. Now you can start to use IPython Notebook with:")
-      (message "  `ein:notebooklist-open' - Open notebook list buffer.")
-      (message "  `ein:junk-new' - Open a notebook to try random thing.")
-      )
-  (message "Failed to load package `ein'"))
+          ;; https://github.com/millejoh/emacs-ipython-notebook
+          (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein"))
+          (add-to-list 'load-path (concat dotemacs-py-dir "elisp/ein/ein-ipy3"))))
+      (if (require 'ein nil t)
+          (progn
+            (when (fboundp 'cheatsheet-add)
+                  (cheatsheet-add :group 'Python
+                                  :key "M-x ein:notebooklist-open"
+                                  :description "emacs-ipython-notebook: Open notebook list buffer.")
+                  (cheatsheet-add :group 'Python
+                                  :key "M-x ein:junk-new"
+                                  :description "emacs-ipython-notebook: Open a notebook to try random thing.")
+                  )
+            (message "EIN loaded. Now you can start to use IPython Notebook with:")
+            (message "  `ein:notebooklist-open' - Open notebook list buffer.")
+            (message "  `ein:junk-new' - Open a notebook to try random thing.")))
+      (message "Failed to load package `ein'"))))
 
 
 ;; ** misc
