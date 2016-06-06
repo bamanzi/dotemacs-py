@@ -370,15 +370,15 @@
 ;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
-;; stolen from http://wenshanren.org/?p=351
-(defun python-insert-interactive-stmt ()
-  "Insert 'import code; code.interact(local=vars())' at current position."
-  (interactive)
-  (newline-and-indent)
-  (insert "import code; code.interact(local=vars())")
-  (move-end-of-line 1)
-  (if (get-buffer-process (current-buffer))
-      (comint-send-input)))
+(eval-after-load "python"
+  `(progn     
+     (define-key python-mode-map (kbd "<f9> M-`") 'run-python)
+     (define-key python-mode-map (kbd "<f9> `")   'python-shell-switch-to-shell)
+     
+     (define-key python-mode-map (kbd "<f9> d")   'python-shell-send-defun)
+     (define-key python-mode-map (kbd "<f9> SPC") 'python-shell-send-region)
+     
+     ))
 
 ;; make `python-shell-send-region' work for indented block
 (eval-after-load "python"
@@ -404,6 +404,16 @@
          (python-shell-send-string content  nil t)))
      ))
 
+;; stolen from http://wenshanren.org/?p=351
+(defun python-insert-interactive-stmt ()
+  "Insert 'import code; code.interact(local=vars())' at current position."
+  (interactive)
+  (newline-and-indent)
+  (insert "import code; code.interact(local=vars())")
+  (move-end-of-line 1)
+  (if (get-buffer-process (current-buffer))
+      (comint-send-input)))
+
 ;; *** python-cell
 (autoload 'python-cell-mode "python-cell"
   "Highlight MATLAB-like cells and navigate between them." t)
@@ -412,7 +422,7 @@
 
 (eval-after-load "python-cell"
   `(progn
-     (define-key python-mode-map (kbd "C-c RET") 'python-shell-send-cell)
+     (define-key python-mode-map (kbd "<f9> c") 'python-shell-send-cell)
 
      ;; use a darker background color for CELL
      (setq python-cell-highlight-face 'fringe)
