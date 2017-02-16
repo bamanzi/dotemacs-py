@@ -555,8 +555,8 @@ default to utf-8."
 ;; *** anaconda-mode
 ;; https://github.com/proofit404/anaconda-mode
 
-(setq anaconda-mode-server
-      (concat dotemacs-py-dir "python-libs/anaconda_mode.py"))
+(setq anaconda-mode-server-directory
+      (concat dotemacs-py-dir "python-libs"))
 
 (autoload 'anaconda-mode "anaconda-mode"
   "Code navigation, documentation lookup and completion for Python." t)
@@ -588,7 +588,7 @@ default to utf-8."
         (setq ac-sources (remq 'ac-source-anaconda ac-sources))))
   )
 
-(defun toggle-anaconda ()
+(defun toggle-anaconda-mode ()
   (interactive)
   (require 'anaconda-mode)
   (if anaconda-mode
@@ -824,18 +824,25 @@ default to utf-8."
          :help "Enable anaconda-mode for better support for navigation & completion"
          :style toggle
          :selected (bound-and-true-p anaconda-mode)]
-        ["   Goto definition" anaconda-mode-goto-definitions
-         :help "Goto definition for thing at point."
+        ["   Find definition" anaconda-mode-find-definitions
+         :help "Find definitions for thing at point."
          :enable (bound-and-true-p anaconda-mode)]
-        ["   Go back" anaconda-nav-pop-marker
+        ["   Find assignments" anaconda-mode-find-assignments
+         :help "Find assignments for thing at point."
+         :enable (bound-and-true-p anaconda-mode)]
+        ["   Find references" anaconda-mode-find-references
+         :help "Find references for thing at point."
+         :enable (bound-and-true-p anaconda-mode)]
+        ["   Go back" anaconda-mode-go-back
          :help "Switch to buffer of most recent marker."
          :enable (bound-and-true-p anaconda-mode)]
-        ["   View document" anaconda-mode-view-doc
+        ["   Show document" anaconda-mode-show-doc
          :help "Show documentation for context at point."
          :enable (bound-and-true-p anaconda-mode)]
-        ["   View usages" anaconda-mode-usages
-         :help "Show usages for thing at point."
-         :enable (bound-and-true-p anaconda-mode)]))
+        ["   Complete symbol" anaconda-mode-complete
+         :help "Complete symbol for thing at pont."
+         :enable (bound-and-true-p andconda-mode)]
+        ))
 
 (eval-after-load "python"
   `(progn
