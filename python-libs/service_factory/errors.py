@@ -4,15 +4,14 @@
 
     This module implements different errors emitters.
 
-    :copyright: (c) 2015 by Artem Malyshev.
+    :copyright: (c) 2015-2016 by Artem Malyshev.
     :license: GPL3, see LICENSE for more details.
 """
 
 from __future__ import (
-    absolute_import, unicode_literals, division, print_function)
+    absolute_import, unicode_literals, division, print_function,
+)
 from json import dumps
-
-import six
 
 from .exceptions import ServiceException
 
@@ -48,7 +47,7 @@ def invalid_request(error):
             'data': repr(error),
         },
     }
-    six.raise_from(ServiceException(400, dumps(response)), error)
+    raise ServiceException(400, dumps(response))
 
 
 def method_not_found(request_id):
@@ -89,4 +88,4 @@ def server_error(request_id, error):
             'data': repr(error),
         },
     }
-    six.raise_from(ServiceException(500, dumps(response)), error)
+    raise ServiceException(500, dumps(response))

@@ -1,12 +1,13 @@
-.. |travis| image:: https://travis-ci.org/proofit404/anaconda-mode.png
+
+.. |travis| image:: https://img.shields.io/travis/proofit404/anaconda-mode.svg?style=flat-square
     :target: https://travis-ci.org/proofit404/anaconda-mode
     :alt: Build Status
 
-.. |coveralls| image:: https://coveralls.io/repos/proofit404/anaconda-mode/badge.png
+.. |coveralls| image:: https://img.shields.io/coveralls/proofit404/anaconda-mode.svg?style=flat-square
     :target: https://coveralls.io/r/proofit404/anaconda-mode
     :alt: Coverage Status
 
-.. |requires| image:: https://requires.io/github/proofit404/anaconda-mode/requirements.svg
+.. |requires| image:: https://img.shields.io/requires/github/proofit404/anaconda-mode.svg?style=flat-square
     :target: https://requires.io/github/proofit404/anaconda-mode/requirements
     :alt: Requirements Status
 
@@ -18,21 +19,26 @@
     :target: http://stable.melpa.org/#/anaconda-mode
     :alt: Melpa Stable
 
-=============
-Anaconda mode
-=============
+.. image:: static/logo.png
+    :align: right
+    :alt: Logo
+
+===============
+ Anaconda mode
+===============
 
 |travis| |coveralls| |requires| |melpa| |melpa-stable|
 
-.. image:: static/logo.png
-    :align: center
-
 Code navigation, documentation lookup and completion for Python.
 
-.. figure:: static/goto-definitions.png
+.. figure:: static/completion.png
 
-This package support 2.6, 2.7, 3.3 and 3.4 Python versions and provide
-following features
+.. figure:: static/reference.png
+
+
+Features
+--------
+Anaconda mode provides the following features
 
 * context-sensitive code completion
 * jump to definitions
@@ -40,37 +46,42 @@ following features
 * view documentation
 * virtual environment
 * eldoc mode
+* all this stuff inside vagrant and remote hosts
+
+Supported Python Versions
+-------------------------
+2.6, 2.7, 3.3, 3.4
 
 Installation
 ------------
 
-To use this package you need to install ``pip``.
+To use this package you need to install ``setuptools``.
 
 package.el
 ``````````
 
-All you need is install the package from Melpa_::
+All you need to do is install the package from Melpa_::
 
     M-x package-install RET anaconda-mode RET
 
-manual
+Manual
 ``````
 
-Clone this repository somewhere and add this directory to you
+Clone this repository somewhere and add this directory to your
 ``load-path``.
 
-prelude
+Prelude
 ```````
 
-``anaconda-mode`` included into `Emacs Prelude`_ distribution.  You
-can use it as well.  Look at ``prelude-python`` module to see more
+``anaconda-mode`` is included in the `Emacs Prelude`_ distribution.  You
+can use it as well.  Look at the ``prelude-python`` module to see more
 details.
 
-spacemacs
+Spacemacs
 `````````
 
-``anaconda-mode`` included into Spacemacs_ distribution.  You can use
-it as well.  Look at ``python`` language contrib to see more details.
+``anaconda-mode`` is included in the Spacemacs_ distribution.  You can use
+it as well.  Look at the ``python`` language layer to see more details.
 
 Configuration
 -------------
@@ -85,25 +96,25 @@ with following code in your configuration:
 ElDoc
 `````
 
-``anaconda-mode`` provide document function to ``eldoc-mode``.  All
-you need is enable ``eldoc-mode`` in addition to previous setup.
+``anaconda-eldoc-mode`` provide document function to ``eldoc-mode``.  All
+you need is to enable ``anaconda-eldoc-mode`` in addition to the previous setup.
 
 .. code:: lisp
 
-    (add-hook 'python-mode-hook 'eldoc-mode)
+    (add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 
 Usage
 -----
 
-To start completion press ``C-M-i``.  This is standard emacs binding
+To start a completion press ``C-M-i``.  This is the standard emacs binding
 for ``complete-at-point`` function.  You can use company-mode_ with
 company-anaconda_ backend to get more intelligent ui.  Or
-auto-complete-mode_ with ac-anaconda_ as last try.
+auto-complete-mode_ with ac-anaconda_ as a last try.
 
 Interactive commands
 ````````````````````
 
-Here are interactive commands available with anaconda-mode
+Here is a list of interactive commands available with anaconda-mode
 
 ==========  ==============================
 Keybinding  Description
@@ -116,57 +127,124 @@ M-*         anaconda-mode-go-back
 M-?         anaconda-mode-show-doc
 ==========  ==============================
 
-If goto definitions, assignments or usages cause multiple candidates
-you'll see advanced anaconda navigator buffer.
+If multiple candidates are found for definitions, assignments or usages,
+you'll see an advanced anaconda navigator buffer.
+
+PYTHONPATH
+``````````
+
+You can add your project to the Emacs ``PYTHONPATH``.  If you store project
+dependencies somewhere on your machine, you can add them as well.
+
+.. code:: lisp
+
+    (add-to-list 'python-shell-extra-pythonpaths "/path/to/the/project")
+    (add-to-list 'python-shell-extra-pythonpaths "/path/to/the/dependency")
+
+Virtual environment
+```````````````````
+
+Use a virtual environment to isolate your project dependencies from
+others on the system.  You can additionally install your project in an editable
+mode in the virtual environment.  This will improve search functionality.
+Then activate this virtual environment inside Emacs.
+
+::
+
+    M-x pythonic-activate RET /path/to/virtualenv RET
+
+Also you can use `pyenv-mode`_ or similar package to hold virtual
+environment in actual state.
+
+Each action above applies to ``anaconda-mode`` immediately.  The next
+``anaconda-mode`` command you call will use this environment for
+search completion candidates.
 
 Tramp
 `````
 
-**Not properly implemented yet**
+It's possible to use anaconda-mode on a remote server when you connect
+to it using tramp.  Anaconda-mode can search for completion candidates
+and all other stuff on remote server while you running Emacs locally.
+First of all open interesting remote file.
 
-It's possible to use anaconda-mode on remote server when you connect
-to it using tramp.  In case of vagrant you need to use ``127.0.0.1``
-as tramp address.
+::
+
+    C-x C-f /ssh:remote_host:project/__init__.py RET
+
+After tramp successfully connects and you see actual buffer
+content, activate the remote virtual environment.
+
+::
+
+    M-x pythoninc-activate RET /ssh:remote_host:/home/user/venv RET
+
+Now any anaconda-mode command will use ``/home/user/venv/bin/python``
+interpreter running on ``remote_host`` over ssh.  If you don't use the
+virtual environment remotely then you have an option to specify the remote
+interpreter directly.
+
+.. code:: lisp
+
+    (setq python-shell-interpreter "/ssh:remote_host:/usr/bin/python")
+
+It is important to remember that ``remote_host`` must be a real host
+name or an IP address.  SSH aliases not allowed to be used with
+anaconda-mode.  Also port 9000 on the remote host should be open to
+incoming connections from your local machine.  A final note about project scope:
+all kinds of searching from inside the
+virtual environment are available from any buffer.  However searching inside your
+project is available only if you open it on the same machine as the
+interpreter.
+
+Vagrant
+```````
+
+You can get all the intelligent features of anaconda-mode with virtual
+environments deployed on your vagrant box.  Add a port forwarding line to
+your Vagrantfile.
+
+::
+
+   config.vm.network "forwarded_port", guest: 9000, host: 9000
+
+Fire up vagrant machine as usual and open your project inside vagrant
+box.
+
+::
+
+    C-x C-f /ssh:vagrant@localhost#2222:/vagrant/polls/views.py
+
+Then activate your project environment installed inside vagrant.
+
+::
+
+    M-x pythonic-activate RET /ssh:vagrant@localhost#2222:/vagrant/polls/venv RET
+
+Remember that the standard password for vagrant user is ``vagrant``. It is
+too annoying to type this password each time you want to connect.  I
+use ``ssh-copy-id`` to upload my public ssh key to the box.
+
+::
+
+    ssh-copy-id vagrant@localhost -p 2222
+
+If you have random connection errors during interaction with running
+server - try to replace host name with IP address.  For example
+``localhost`` with ``127.0.0.1``.
+
+Now you are ready to go.
 
 Implementation details
 ----------------------
 
 Anaconda mode comes with ``anaconda_mode.py`` server.  This server
-allow you to use jedi_ python library over jsonrpc api.  Server choice
-first available port starting from 24970.  Anaconda mode will run this
+allows you to use the jedi_ python library over jsonrpc api.  The server chooses
+first available port starting from 9000.  Anaconda mode will run this
 server automatically on first call of any anaconda-mode command.
 
-This mean that completion results and reference search depends on your
-project installation.  To make it available for ``anaconda-mode`` you
-have few options.
-
-PYTHONPATH
-``````````
-
-Add your project to Emacs ``PYTHONPATH``.  If you store project
-dependencies somewhere on you machine add its too.
-::
-
-    M-x setenv RET PYTHONPATH RET /path/to/project:/path/to/dependency
-
-VIRTUALENV
-``````````
-
-Use virtual environment to isolate your project dependencies form
-other system.  You can additionally install you project in editable
-mode into virtual environment.  This will improve usage references
-search.  Then activate this virtual environment inside Emacs.
-
-.. code:: lisp
-
-    (setq python-shell-virtualenv-path "/path/to/virtualenv")
-
-I strongly recommended you to use `pyenv-mode`_ or similar package to
-hold ``python-shell-virtualenv-path`` in actual state.
-
-Each action above applies to ``anaconda-mode`` server immediately.
-Next ``anaconda-mode`` command you call will use this environment for
-completion candidates search.
+This means that completion results and reference searches depend on your
+project installation.
 
 Bug Reports
 -----------
@@ -177,35 +255,22 @@ issue.
 Issues
 ------
 
-DistutilsOptionError
-````````````````````
-
-::
-
-    DistutilsOptionError: must supply either home or prefix/exec-prefix -- not both
-
-This occurs due to `distutils bug
-<http://bugs.python.org/issue22269>`_ when ``pip -t`` option conflict
-with ``distutils.cfg`` ``prefix`` option.  If you install ``pip`` with
-``homebrew`` you are on fire.  There are few options to avoid this
-issue.
-
-- install ``anaconda-mode`` `dependencies
-  <https://github.com/proofit404/anaconda-mode/blob/master/requirements.txt>`_
-  manually
-- remove ``prefix`` option from ``distutils.cfg``
-
 AttributeError and KeyError randomly happens
 ````````````````````````````````````````````
 
-This kind of problems were reported with jedi 0.9 version.  You can
-try to downgrade jedi version down to 0.8.
+These kinds of problems were reported with jedi 0.9 version.  (This
+error may occur in Spacemacs or any other usage).  You can try to
+downgrade jedi version down to 0.8.
 
 ::
 
-   M-x find-library RET anaconda-mode RET
+   M-: (dired (anaconda-mode-server-directory)) RET
    M-! rm -rf jedi* RET
    M-! pip install "jedi<0.9" -t . RET
+
+After you saw the jedi version changed to 0.8 in the dired window, you
+have to refresh Emacs to make it work right away. You can either
+restart Emacs or kill the ``*anaconda-mode*`` buffer.
 
 Contributions
 -------------

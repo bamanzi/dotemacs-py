@@ -1,10 +1,10 @@
 ;;; anaconda-mode.el --- Code navigation, documentation lookup and completion for Python  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2015 by Artem Malyshev
+;; Copyright (C) 2013-2016 by Artem Malyshev
 
 ;; Author: Artem Malyshev <proofit404@gmail.com>
 ;; URL: https://github.com/proofit404/anaconda-mode
-;; Version: 0.1.1
+;; Version: 0.1.7
 ;; Package-Requires: ((emacs "24") (pythonic "0.1.0") (dash "2.6.0") (s "1.9") (f "0.16.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -37,6 +37,12 @@
 (defgroup anaconda-mode nil
   "Code navigation, documentation lookup and completion for Python."
   :group 'programming)
+
+(defcustom anaconda-mode-installation-directory
+  "~/.emacs.d/anaconda-mode"
+  "Installation directory for anaconda-mode server."
+  :group 'anaconda-mode
+  :type 'directory)
 
 (defcustom anaconda-mode-complete-callback
   'anaconda-mode-complete-callback
@@ -79,18 +85,23 @@
   :group 'anaconda-mode
   :type 'boolean)
 
+(defcustom anaconda-mode-lighter " Anaconda"
+  "Text displayed in the mode line when `anaconda-mode’ is active."
+  :group 'anaconda-mode
+  :type 'sexp)
+
 
 ;;; Server.
 
-(defvar anaconda-mode-server-version "0.1.1"
+(defvar anaconda-mode-server-version "0.1.7"
   "Server version needed to run anaconda-mode.")
 
-(defvar anaconda-mode-server-directory
-  (f-join "~" ".emacs.d" "anaconda-mode" anaconda-mode-server-version)
-  "Anaconda mode installation directory.")
-
-(defvar anaconda-mode-server-script "anaconda_mode.py"
-  "Script file with anaconda-mode server.")
+(defvar anaconda-mode-server-command "
+import sys, site
+site.addsitedir('.')
+import anaconda_mode
+anaconda_mode.main(sys.argv[1:])
+" "Run `anaconda-mode' server.")
 
 (defvar anaconda-mode-process-name "anaconda-mode"
   "Process name for anaconda-mode processes.")
@@ -101,50 +112,76 @@
 (defvar anaconda-mode-process nil
   "Currently running anaconda-mode process.")
 
+(defun anaconda-mode-show-process-buffer ()
+  "Display `anaconda-mode-process-buffer'."
+  (pop-to-buffer anaconda-mode-process-buffer))
+
+(defvar anaconda-mode-process-fail-hook nil
+  "Hook running when any of `anaconda-mode' fails by some reason.")
+
+(add-hook 'anaconda-mode-process-fail-hook 'anaconda-mode-show-process-buffer)
+
 (defvar anaconda-mode-port nil
   "Port for anaconda-mode connection.")
 
-(defvar anaconda-mode-ensure-directory-command
-  (list
-   "-c" "
-import os
-import sys
-directory = sys.argv[-1]
+(defvar anaconda-mode-ensure-directory-command "
+import os, sys
+directory = os.path.expanduser(sys.argv[-1])
 if not os.path.exists(directory):
     os.makedirs(directory)
-" anaconda-mode-server-directory)
-  "Create `anaconda-mode-server-directory' if necessary.")
+" "Create `anaconda-mode-server-directory' if necessary.")
 
-(defvar anaconda-mode-check-installation-command
-  (list "-c" "
-import sys, os
+(defvar anaconda-mode-check-installation-command "
+import sys, os, site
 from pkg_resources import find_distributions
-directory = sys.argv[-1]
-for dist in find_distributions(directory, only=True):
-    if dist.project_name == 'anaconda-mode':
+directory = os.path.expanduser(sys.argv[-1])
+site.addsitedir(directory)
+candidates = [ directory ]
+candidates.extend(map(lambda subdir: os.path.join(directory, subdir),
+                      os.listdir(directory)))
+location = None
+for path_item in candidates:
+    for dist in find_distributions(path_item, only=True):
+        if dist.project_name == 'anaconda-mode':
+            location = path_item
+            break
+    if location:
         break
 else:
     # IPython patch sys.exit, so we can't use it.
     os._exit(1)
-" anaconda-mode-server-directory)
-  "Check if `anaconda-mode' server is installed or not.")
+# Check if the detected location was added properly to sys.path.
+# This is required for egg-based installation to work correctly.
+for path_item in sys.path:
+    if os.path.abspath(path_item) == os.path.abspath(location):
+        break
+else:
+    os._exit(1)
+" "Check if `anaconda-mode' server is installed or not.")
 
-(defvar anaconda-mode-install-server-command
-  (list "-c" "
-import sys
-import pip
-directory = sys.argv[-2]
+(defvar anaconda-mode-install-server-command "
+import os, sys
+from setuptools.command import easy_install
+directory = os.path.expanduser(sys.argv[-2])
 version = sys.argv[-1]
-pip.main(['install', '-t', directory, 'anaconda_mode==' + version])
-" anaconda-mode-server-directory anaconda-mode-server-version)
-  "Install `anaconda_mode' server.")
+sys.path.append(directory)
+easy_install.main(['-d', directory, '-S', directory, '-a', '-Z',
+                   'anaconda_mode==' + version])
+" "Install `anaconda_mode' server.")
+
+(defun anaconda-mode-server-directory ()
+  "Anaconda mode installation directory."
+  (f-short (f-join anaconda-mode-installation-directory
+                   anaconda-mode-server-version)))
 
 (defun anaconda-mode-host ()
   "Target host with anaconda-mode server."
   (if (pythonic-remote-p)
-      (tramp-file-name-host
-       (tramp-dissect-file-name
-        (pythonic-tramp-connection)))
+      (replace-regexp-in-string
+       "#.*\\'" ""                      ;; Cleanup tramp port specification.
+       (tramp-file-name-host
+        (tramp-dissect-file-name
+         (pythonic-tramp-connection))))
     "127.0.0.1"))
 
 (defun anaconda-mode-start (&optional callback)
@@ -154,8 +191,9 @@ be bound."
   (when (anaconda-mode-need-restart)
     (anaconda-mode-stop))
   (if (anaconda-mode-running-p)
-      (when callback
-        (funcall callback))
+      (and callback
+           (anaconda-mode-bound-p)
+           (funcall callback))
     (anaconda-mode-ensure-directory callback)))
 
 (defun anaconda-mode-stop ()
@@ -178,8 +216,11 @@ be bound."
 
 (defun anaconda-mode-need-restart ()
   "Check if we need to restart `anaconda-mode-server'."
-  (when (anaconda-mode-running-p)
-    (not (pythonic-proper-environment-p anaconda-mode-process))))
+  (when (and (anaconda-mode-running-p)
+             (anaconda-mode-bound-p))
+    (or (not (pythonic-proper-environment-p anaconda-mode-process))
+        (not (equal (process-get anaconda-mode-process 'server-directory)
+                    (anaconda-mode-server-directory))))))
 
 (defun anaconda-mode-ensure-directory (&optional callback)
   "Ensure if `anaconda-mode-server-directory' exists.
@@ -189,17 +230,20 @@ be bound."
         (start-pythonic :process anaconda-mode-process-name
                         :buffer anaconda-mode-process-buffer
                         :sentinel (lambda (process event) (anaconda-mode-ensure-directory-sentinel process event callback))
-                        :args anaconda-mode-ensure-directory-command)))
+                        :args (list "-c"
+                                    anaconda-mode-ensure-directory-command
+                                    (anaconda-mode-server-directory)))))
 
-(defun anaconda-mode-ensure-directory-sentinel (process event &optional callback)
+(defun anaconda-mode-ensure-directory-sentinel (process _event &optional callback)
   "Run `anaconda-mode-check' if `anaconda-mode-server-directory' exists.
-Raise error otherwise.  PROCESS and EVENT are basic sentinel
+Print error message otherwise.  PROCESS and EVENT are basic sentinel
 parameters.  CALLBACK function will be called when
 `anaconda-mode-port' will be bound."
   (if (eq 0 (process-exit-status process))
       (anaconda-mode-check callback)
-    (pop-to-buffer anaconda-mode-process-buffer)
-    (error "Can't create %s directory" anaconda-mode-server-directory)))
+    (run-hooks 'anaconda-mode-process-fail-hook)
+    (message "Can not create %s directory"
+             (anaconda-mode-server-directory))))
 
 (defun anaconda-mode-check (&optional callback)
   "Check `anaconda-mode' server installation.
@@ -209,9 +253,11 @@ be bound."
         (start-pythonic :process anaconda-mode-process-name
                         :buffer anaconda-mode-process-buffer
                         :sentinel (lambda (process event) (anaconda-mode-check-sentinel process event callback))
-                        :args anaconda-mode-check-installation-command)))
+                        :args (list "-c"
+                                    anaconda-mode-check-installation-command
+                                    (anaconda-mode-server-directory)))))
 
-(defun anaconda-mode-check-sentinel (process event &optional callback)
+(defun anaconda-mode-check-sentinel (process _event &optional callback)
   "Run `anaconda-mode-bootstrap' if server installation check passed.
 Try to install `anaconda-mode' server otherwise.  PROCESS and
 EVENT are basic sentinel parameters.  CALLBACK function will be
@@ -228,17 +274,20 @@ be bound."
         (start-pythonic :process anaconda-mode-process-name
                         :buffer anaconda-mode-process-buffer
                         :sentinel (lambda (process event) (anaconda-mode-install-sentinel process event callback))
-                        :args anaconda-mode-install-server-command)))
+                        :args (list "-c"
+                                    anaconda-mode-install-server-command
+                                    (anaconda-mode-server-directory)
+                                    anaconda-mode-server-version))))
 
-(defun anaconda-mode-install-sentinel (process event &optional callback)
+(defun anaconda-mode-install-sentinel (process _event &optional callback)
   "Run `anaconda-mode-bootstrap' if server installation complete successfully.
-Raise error otherwise.  PROCESS and EVENT are basic sentinel
+Print error message otherwise.  PROCESS and EVENT are basic sentinel
 parameters.  CALLBACK function will be called when
 `anaconda-mode-port' will be bound."
   (if (eq 0 (process-exit-status process))
       (anaconda-mode-bootstrap callback)
-    (pop-to-buffer anaconda-mode-process-buffer)
-    (error "Can't install `anaconda-mode' server")))
+    (run-hooks 'anaconda-mode-process-fail-hook)
+    (message "Can not install `anaconda-mode' server")))
 
 (defun anaconda-mode-bootstrap (&optional callback)
   "Run `anaconda-mode' server.
@@ -247,11 +296,16 @@ be bound."
   (setq anaconda-mode-process
         (start-pythonic :process anaconda-mode-process-name
                         :buffer anaconda-mode-process-buffer
-                        :cwd anaconda-mode-server-directory
+                        :cwd (anaconda-mode-server-directory)
                         :filter (lambda (process output) (anaconda-mode-bootstrap-filter process output callback))
                         :sentinel 'anaconda-mode-bootstrap-sentinel
                         :query-on-exit nil
-                        :args (list anaconda-mode-server-script))))
+                        :args (delq nil
+                                    (list "-c"
+                                          anaconda-mode-server-command
+                                          (when (pythonic-remote-p)
+                                            "0.0.0.0")))))
+  (process-put anaconda-mode-process 'server-directory (anaconda-mode-server-directory)))
 
 (defun anaconda-mode-bootstrap-filter (process output &optional callback)
   "Set `anaconda-mode-port' from PROCESS OUTPUT.
@@ -270,12 +324,12 @@ called when `anaconda-mode-port' will be bound."
     (when callback
       (funcall callback))))
 
-(defun anaconda-mode-bootstrap-sentinel (process event)
-  "Raise error if `anaconda-mode' server exit abnormally.
+(defun anaconda-mode-bootstrap-sentinel (process _event)
+  "Print error message if `anaconda-mode' server exit abnormally.
 PROCESS and EVENT are basic sentinel parameters."
   (unless (eq 0 (process-exit-status process))
-    (pop-to-buffer anaconda-mode-process-buffer)
-    (error "Can't start `anaconda-mode' server")))
+    (run-hooks 'anaconda-mode-process-fail-hook)
+    (message "Can not start `anaconda-mode' server")))
 
 
 ;;; Interaction.
@@ -301,7 +355,7 @@ number position, column number position and file path."
 
 (defun anaconda-mode-jsonrpc-request (command)
   "Prepare JSON encoded buffer data for COMMAND call."
-  (json-encode (anaconda-mode-jsonrpc-request-data command)))
+  (encode-coding-string (json-encode (anaconda-mode-jsonrpc-request-data command)) 'utf-8))
 
 (defun anaconda-mode-jsonrpc-request-data (command)
   "Prepare buffer data for COMMAND call."
@@ -312,7 +366,17 @@ number position, column number position and file path."
                (line . ,(line-number-at-pos (point)))
                (column . ,(- (point) (line-beginning-position)))
                (path . ,(when (buffer-file-name)
-                          (pythonic-file-name (buffer-file-name))))))))
+                          (if (pythonic-remote-p)
+                              (and
+                               (tramp-tramp-file-p (buffer-file-name))
+                               (equal (tramp-file-name-host
+                                       (tramp-dissect-file-name
+                                        (pythonic-tramp-connection)))
+                                      (tramp-file-name-host
+                                       (tramp-dissect-file-name
+                                        (buffer-file-name))))
+                               (pythonic-file-name (buffer-file-name)))
+                            (buffer-file-name))))))))
 
 (defun anaconda-mode-create-response-handler (command callback)
   "Create server response handler based on COMMAND and CALLBACK function.
@@ -332,26 +396,63 @@ submitted."
                           (not (equal anaconda-mode-request-point (point)))
                           (not (equal anaconda-mode-request-tick (buffer-chars-modified-tick))))))
                 (message "Skip anaconda-mode %s response" command)
-              (goto-char url-http-end-of-headers)
+              (search-forward-regexp "\r?\n\r?\n" nil t)
               (let* ((json-array-type 'list)
                      (response (condition-case nil
                                    (json-read)
-                                 (json-readtable-error
-                                  (progn
-                                    (let ((response-string (buffer-string)))
-                                      (pop-to-buffer
-                                       (with-current-buffer (get-buffer-create "*anaconda-response*")
-                                         (insert response-string)
-                                         (goto-char (point-min))
-                                         (current-buffer))))
-                                    (error "Can't read anaconda-mode server response"))))))
-                (if (assoc 'error response)
-                    (error (cdr (assoc 'error response)))
-                  (with-current-buffer anaconda-mode-request-buffer
-                    ;; Terminate `apply' call with empty list so response
-                    ;; will be treated as single argument.
-                    (apply callback (cdr (assoc 'result response)) nil)))))
+                                 ((json-readtable-error json-end-of-file end-of-file)
+                                  (let ((response (concat (format "# status: %s\n# point: %s\n" status (point))
+                                                          (buffer-string))))
+                                    (run-hook-with-args 'anaconda-mode-response-read-fail-hook response)
+                                    nil)))))
+                (if (null response)
+                    (message "Can not read anaconda-mode server response")
+                  (if (assoc 'error response)
+                      (let* ((error-structure (cdr (assoc 'error response)))
+                             (error-message (cdr (assoc 'message error-structure)))
+                             (error-data (cdr (assoc 'data error-structure)))
+                             (error-template (if error-data "%s: %s" "%s")))
+                        (apply 'message error-template (delq nil (list error-message error-data))))
+                    (with-current-buffer anaconda-mode-request-buffer
+                      (let ((result (cdr (assoc 'result response))))
+                        (when (and (pythonic-remote-p)
+                                   (member command anaconda-mode-definition-commands))
+                          (setq result (--map (--map (let ((key (car it))
+                                                           (value (cdr it)))
+                                                       (when (and (eq key 'module-path) value)
+                                                         (setq value (concat (pythonic-tramp-connection) value)))
+                                                       (cons key value))
+                                                     it)
+                                              result)))
+                        ;; Terminate `apply' call with empty list so response
+                        ;; will be treated as single argument.
+                        (apply callback result nil)))))))
           (kill-buffer http-buffer))))))
+
+(defvar anaconda-mode-definition-commands
+  '("complete" "goto_definitions" "goto_assignments" "usages")
+  "List of `anaconda-mode' rpc commands returning definitions as result.
+
+This is used to prefix `module-path' field with
+`pythonic-tramp-connection' in the case of remote interpreter or
+virtual environment.")
+
+(defvar anaconda-mode-response-buffer "*anaconda-response*"
+  "Buffer name for error report when `anaconda-mode' fail to read server response.")
+
+(defvar anaconda-mode-response-read-fail-hook nil
+  "Hook running when `anaconda-mode' fail to read server response.")
+
+(add-hook 'anaconda-mode-response-read-fail-hook 'anaconda-mode-show-unreadable-response)
+
+(defun anaconda-mode-show-unreadable-response (response)
+  "Show unreadable RESPONSE to user, so he can report it properly."
+  (pop-to-buffer
+   (with-current-buffer (get-buffer-create anaconda-mode-response-buffer)
+     (erase-buffer)
+     (insert response)
+     (goto-char (point-min))
+     (current-buffer))))
 
 
 ;;; Code completion.
@@ -454,7 +555,9 @@ submitted."
 
 (defun anaconda-mode-eldoc-function ()
   "Show eldoc for context at point."
-  (anaconda-mode-call "eldoc" anaconda-mode-eldoc-callback))
+  (anaconda-mode-call "eldoc" anaconda-mode-eldoc-callback)
+  ;; Don't show response buffer name as ElDoc message.
+  nil)
 
 (defun anaconda-mode-eldoc-callback (result)
   "Display eldoc from server RESULT."
@@ -558,7 +661,14 @@ PRESENTER is the function used to format buffer content."
   "Find DEFINITION file other window, go to DEFINITION point."
   (anaconda-mode-find-file-generic definition 'find-file-other-window))
 
-(defun anaconda-mode-find-file-generic (definition find-function)
+(defun anaconda-mode-find-file-no-record-definition (definition)
+  "Find DEFINITION file, go to DEFINITION point (without recording in the go-back stack)"
+  (anaconda-mode-find-file-generic definition 'find-file t))
+
+(defvar-local anaconda-mode-go-back-definitions nil
+  "Previous definition from which current buffer was navigated.")
+
+(defun anaconda-mode-find-file-generic (definition find-function &optional no-record)
   "Find DEFINITION with FIND-FUNCTION."
   (let ((backward-navigation (when (buffer-file-name)
                                `((module-path . ,(buffer-file-name))
@@ -567,10 +677,11 @@ PRESENTER is the function used to format buffer content."
     (--if-let (cdr (assoc 'module-path definition))
         (progn
           (funcall find-function it)
-          (goto-char 0)
+          (goto-char (point-min))
           (forward-line (1- (cdr (assoc 'line definition))))
           (forward-char (cdr (assoc 'column definition)))
-          (setq anaconda-mode-go-back-definition backward-navigation))
+          (when (and (not no-record) backward-navigation)
+            (push backward-navigation anaconda-mode-go-back-definitions)))
       (message "Can't open %s module" (cdr (assoc 'module-name definition))))))
 
 (defun anaconda-mode-view-insert-button (name definition)
@@ -620,22 +731,19 @@ PRESENTER is the function used to format buffer content."
 \\{anaconda-mode-view-mode-map}"
   (setq next-error-function #'anaconda-mode-next-definition))
 
-(defun anaconda-mode-next-definition (num reset)
-  "Navigate tot the next definition in the view buffer.
+(defun anaconda-mode-next-definition (num _reset)
+  "Navigate to the next definition in the view buffer.
 NUM is the number of definitions to move forward.  RESET mean go
 to the beginning of buffer before definitions navigation."
   (forward-button num)
   (anaconda-mode-view-jump-other-window (button-at (point))))
 
-(defvar-local anaconda-mode-go-back-definition nil
-  "Previous definition from which current buffer was navigated.")
-
 (defun anaconda-mode-go-back ()
   "Jump backward if buffer was navigated from `anaconda-mode' command."
   (interactive)
-  (if anaconda-mode-go-back-definition
-      (anaconda-mode-find-file anaconda-mode-go-back-definition)
-    (error "No previous buffer")))
+  (if anaconda-mode-go-back-definitions
+      (anaconda-mode-find-file-no-record-definition (pop anaconda-mode-go-back-definitions))
+    (message "No previous buffer")))
 
 
 ;;; Anaconda minor mode.
@@ -656,20 +764,27 @@ to the beginning of buffer before definitions navigation."
   "Code navigation, documentation lookup and completion for Python.
 
 \\{anaconda-mode-map}"
-  :lighter " Anaconda"
-  :keymap anaconda-mode-map
-  (if anaconda-mode
-      (turn-on-anaconda-mode)
-    (turn-off-anaconda-mode)))
+  :lighter anaconda-mode-lighter
+  :keymap anaconda-mode-map)
 
-(defun turn-on-anaconda-mode ()
-  "Turn on `anaconda-mode'."
+;;;###autoload
+(define-minor-mode anaconda-eldoc-mode
+  "Toggle echo area display of Python objects at point."
+  :lighter ""
+  (if anaconda-eldoc-mode
+      (turn-on-anaconda-eldoc-mode)
+    (turn-off-anaconda-eldoc-mode)))
+
+(defun turn-on-anaconda-eldoc-mode ()
+  "Turn on `anaconda-eldoc-mode'."
   (make-local-variable 'eldoc-documentation-function)
-  (setq-local eldoc-documentation-function 'anaconda-mode-eldoc-function))
+  (setq-local eldoc-documentation-function 'anaconda-mode-eldoc-function)
+  (eldoc-mode +1))
 
-(defun turn-off-anaconda-mode ()
-  "Turn off `anaconda-mode'."
-  (kill-local-variable 'eldoc-documentation-function))
+(defun turn-off-anaconda-eldoc-mode ()
+  "Turn off `anaconda-eldoc-mode'."
+  (kill-local-variable 'eldoc-documentation-function)
+  (eldoc-mode -1))
 
 (provide 'anaconda-mode)
 

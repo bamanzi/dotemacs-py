@@ -555,8 +555,12 @@ default to utf-8."
 ;; *** anaconda-mode
 ;; https://github.com/proofit404/anaconda-mode
 
-(setq anaconda-mode-server-directory
+;; anacond-mode >= 0.1.2
+(setq anaconda-mode-installation-directory
       (concat dotemacs-py-dir "python-libs"))
+
+;; in case we've installed anaconda-mode <= 0.1.1
+(setq anaconda-mode-server-directory anaconda-mode-installation-directory)
 
 (autoload 'anaconda-mode "anaconda-mode"
   "Code navigation, documentation lookup and completion for Python." t)
@@ -565,13 +569,14 @@ default to utf-8."
   "Enable `anaconda-mode' in all future Python buffers."
   (interactive)
   (add-hook 'python-mode-hook 'anaconda-mode)
-  (add-hook 'python-mode-hook 'eldoc-mode) ;; what about `python-eldoc-at-point' from python.el?
-
+  (add-hook 'python-mode-hook 'turn-on-anaconda-eldoc-mode) ;; what about `python-eldoc-at-point' from python.el?
   (if (require 'ac-anaconda nil t)
       (ac-anaconda-setup))
+
+  ;; for current buffer
   (when (eq major-mode 'python-mode)
     (anaconda-mode 1)
-    (eldoc-mode 1)
+    (turn-on-anaconda-eldoc-mode)
     (if (fboundp 'ac-anaconda-setup)
         (ac-anaconda-setup))))
 
@@ -583,7 +588,7 @@ default to utf-8."
   
   (when (eq major-mode 'python-mode)
     (anaconda-mode -1)
-    (eldoc-mode -1)
+    (turn-off-anaconda-eldoc-mode)
     (if (boundp 'ac-source-anaconda)
         (setq ac-sources (remq 'ac-source-anaconda ac-sources))))
   )

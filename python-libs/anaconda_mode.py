@@ -4,7 +4,7 @@
 
     This is anaconda_mode autocompletion server.
 
-    :copyright: (c) 2013-2015 by Artem Malyshev.
+    :copyright: (c) 2013-2016 by Artem Malyshev.
     :license: GPL3, see LICENSE for more details.
 """
 
@@ -93,13 +93,17 @@ def eldoc(script):
         return {
             'name': signature.name,
             'index': signature.index,
-            'params': [param.description for param in signature.params]
+            # NOTE: Remove 'param ' prefix from each description.
+            'params': [param.description[6:] for param in signature.params]
         }
 
 
 app = [complete, goto_definitions, goto_assignments, usages, eldoc]
 
 
+def main(args):
+    host = args[0] if len(args) == 1 else '127.0.0.1'
+    service_factory(app, host, 0, 'anaconda_mode port {port}')
+
 if __name__ == '__main__':
-    host = sys.argv[1] if len(sys.argv) == 2 else '127.0.0.1'
-    service_factory(app, host, 'auto', 'anaconda_mode port {port}')
+    main(sys.argv[1:])
