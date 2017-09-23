@@ -499,6 +499,15 @@ The timer is used only if `post-gc-hook' is not available.")
       (pymacs-print-for-eval argument))
     (princ ")")))
 
+;; stolen from https://github.com/pinard/Pymacs/issues/33
+(defun pymacs-python3-p ()
+  "Return true if python command ends with '3'."
+  (let ((proc (get-buffer-process "*Pymacs*")))
+    (when (processp proc)
+      (let* ((cmd (process-command proc))
+             (exe (car cmd)))
+        (and (> (length exe) 0) (string= "3" (substring exe -1)))))))
+
 (defun pymacs-print-for-eval (expression)
   ;; This function prints a Python expression out of a Lisp EXPRESSION.
   (let (done)
@@ -524,7 +533,7 @@ The timer is used only if `post-gc-hook' is not available.")
                (princ (mapconcat #'identity
                                  (split-string (prin1-to-string text) "\n")
                                  "\\n"))
-               (when multibyte
+               (when (and multibyte (not (pymacs-python3-p)))
                  (princ ".decode('UTF-8')")))
              (setq done t)))
           ((symbolp expression)
