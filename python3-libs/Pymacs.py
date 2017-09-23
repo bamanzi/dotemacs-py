@@ -38,15 +38,15 @@ import os
 import sys
 
 
+import collections
+
+def callable(value):
+    return isinstance(value, collections.Callable)
+
+basestring = str
+from imp import reload
 
 
-
-
-
-
-
-
-__metaclass__ = type
 
 
 def fixup_icanon():
@@ -123,9 +123,9 @@ Arguments are added to the search path for Python modules.
         self.inhibit_quit = True
 
 
-        # Re-open standard input and output in binary mode.
-        sys.stdin = os.fdopen(sys.stdin.fileno(), 'rb')
-        sys.stdout = os.fdopen(sys.stdout.fileno(), 'wb')
+
+
+
 
         # Start protocol and services.
         lisp._protocol.send('version', '"%s"' % version)
@@ -178,73 +178,6 @@ class Protocol:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def loop(self):
         # The server loop repeatedly receives a request from Emacs and
         # returns a response, which is either the value of the received
@@ -287,23 +220,20 @@ class Protocol:
                     action = 'raise'
                     value = 'Emacs: ' + text
                 else:
-
-
-
                     raise ProtocolError("Unknown action %r" % action)
             except KeyboardInterrupt:
                 if done:
                     raise
                 action = 'raise'
                 value = '*Interrupted*'
-            except ProtocolError, exception:
+            except ProtocolError as exception:
                 sys.exit("Protocol error: %s\n" % exception)
             except:
                 import traceback
                 action = 'raise'
                 if lisp.debug_on_error.value() is None:
                     value = traceback.format_exception_only(
-                        sys.exc_type, sys.exc_value)
+                        sys.exc_info[0], sys.exc_info[1])
                     value = ''.join(value).rstrip()
                 else:
                     value = traceback.format_exc()
@@ -339,28 +269,77 @@ class Protocol:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def receive(self):
         # Receive a Python expression from Emacs, return (ACTION, TEXT).
-        prefix = sys.stdin.read(3)
-        if not prefix or prefix[0] != '>':
-
-
-
+        prefix = sys.stdin.buffer.read(3)
+        if not prefix or prefix[0] != ord(b'>'):
             raise ProtocolError("`>' expected.")
-        while prefix[-1] != '\t':
-            character = sys.stdin.read(1)
+        while prefix[-1] != ord(b'\t'):
+            character = sys.stdin.buffer.read(1)
             if not character:
-
-
-
                 raise ProtocolError("Empty stdin read.")
             prefix += character
-        text = sys.stdin.read(int(prefix[1:-1]))
+        data = sys.stdin.buffer.read(int(prefix[1:-1]))
+        try:
+            text = data.decode('UTF-8')
+        except UnicodeDecodeError:
+            #assert False, ('***', data)
+            text = data.decode('ISO-8859-1')
         if run.debug_file is not None:
             handle = open(run.debug_file, 'a')
-            handle.write(prefix + text)
+            handle.write(prefix.decode('ASCII') + text)
             handle.close()
         return text.split(None, 1)
+
+
+
+
 
 
 
@@ -394,13 +373,34 @@ class Protocol:
             self.freed = []
         else:
             text = '(%s %s)\n' % (action, text)
-        prefix = '<%d\t' % len(text)
+        data = text.encode('UTF-8')
+        prefix = '<%d\t' % len(data)
         if run.debug_file is not None:
             handle = open(run.debug_file, 'a')
             handle.write(prefix + text)
             handle.close()
-        sys.stdout.write(prefix + text)
-        sys.stdout.flush()
+        sys.stdout.buffer.write(prefix.encode('ASCII'))
+        sys.stdout.buffer.write(data)
+        sys.stdout.buffer.flush()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def pymacs_load_helper(file_without_extension, prefix, noerror=None):
@@ -543,13 +543,13 @@ class Let:
         self.pops()
 
 
-
-
-
-
-    def __nonzero__(self):
+    def __bool__(self):
         # So stylistic `if let:' executes faster.
         return True
+
+
+
+
 
     def pops(self):
         while self.stack:
@@ -821,84 +821,10 @@ lisp = Lisp_Interface()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 print_lisp_quoted_specials = {
-    '"': '\\"', '\\': '\\\\', '\b': '\\b', '\f': '\\f',
-    '\n': '\\n', '\r': '\\r', '\t': '\\t'}
+    ord('"'): '\\"', ord('\\'): '\\\\', ord('\b'): '\\b',
+    ord('\f'): '\\f',
+    ord('\n'): '\\n', ord('\r'): '\\r', ord('\t'): '\\t'}
 
 def print_lisp(value, write, quoted):
     if value is None:
@@ -909,28 +835,31 @@ def print_lisp(value, write, quoted):
         write(repr(value))
     elif isinstance(value, float):
         write(repr(value))
-    elif isinstance(value, basestring):
-        multibyte = False
-        if isinstance(value, unicode):
-            try:
-                value = value.encode('ASCII')
-            except UnicodeError:
-                value = value.encode('UTF-8')
-                multibyte = True
-        if multibyte:
-            write('(decode-coding-string ')
-        write('"')
-        for character in value:
-            special = print_lisp_quoted_specials.get(character)
-            if special is not None:
-                write(special)
-            elif 32 <= ord(character) < 127:
-                write(character)
-            else:
-                write('\\%.3o' % ord(character))
-        write('"')
-        if multibyte:
-            write(' \'utf-8)')
+    elif isinstance(value, str):
+        try:
+            value.encode('ASCII')
+        except UnicodeError:
+            write('(decode-coding-string "')
+            for byte in value.encode('UTF-8'):
+                special = print_lisp_quoted_specials.get(byte)
+                if special is not None:
+                    write(special)
+                elif 32 <= byte < 127:
+                    write(chr(byte))
+                else:
+                    write('\\%.3o' % byte)
+            write('" \'utf-8)')
+        else:
+            write('"')
+            for character in value:
+                special = print_lisp_quoted_specials.get(ord(character))
+                if special is not None:
+                    write(special)
+                elif 32 <= ord(character) < 127:
+                    write(character)
+                else:
+                    write('\\%.3o' % ord(character))
+            write('"')
     elif isinstance(value, list):
         if quoted:
             write("'")
@@ -964,6 +893,77 @@ def print_lisp(value, write, quoted):
         write('(pymacs-defun %d nil)' % allocate_python(value))
     else:
         write('(pymacs-python %d)' % allocate_python(value))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main(*sys.argv[1:])
