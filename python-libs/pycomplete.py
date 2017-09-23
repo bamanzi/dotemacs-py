@@ -55,9 +55,9 @@ def get_all_completions(s, imports=None):
     if imports is not None:
         for stmt in imports:
             try:
-                exec stmt.strip() in globals(), locald
+                exec(stmt.strip(), globals(), locald)
             except TypeError:
-                raise TypeError, "invalid type: %s" % stmt
+                raise TypeError("invalid type: %s" % stmt)
             except Exception:
                 continue
 
@@ -66,8 +66,11 @@ def get_all_completions(s, imports=None):
         keys = set()
         keys.update(locald.keys())
         keys.update(globals().keys())
-        import __builtin__
-        keys.update(dir(__builtin__))
+        try:
+            import builtins     # python 3.x
+        except:
+            import __builtin__ as buitins
+        keys.update(dir(builtins))
         keys = list(keys)
         keys.sort()
         if s:
@@ -130,25 +133,27 @@ def exec_lines(lines):
     """
     if lines.startswith(" "):
         lines = 'if True:\n' + lines
-    exec lines in globals()
+    exec(lines, globals())
     
 
 if __name__ == "__main__":
-    print "<empty> ->", pycomplete("")
-    print "sys.get ->", pycomplete("sys.get")
-    print "sy ->", pycomplete("sy")
-    print "sy (sys in context) ->", pycomplete("sy", imports=["import sys"])
-    print "foo. ->", pycomplete("foo.")
-    print "Enc (email * imported) ->",
-    print pycomplete("Enc", imports=["from email import *"])
-    print "E (email * imported) ->",
-    print pycomplete("E", imports=["from email import *"])
+    print("<empty> ->", pycomplete(""))
+    print("sys.get ->", pycomplete("sys.get"))
+    print("sy ->", pycomplete("sy"))    
+    print("sy (sys in context) ->", pycomplete("sy", imports=["import sys"]))
+    print("foo. ->", pycomplete("foo."))
+    
+    print("Enc (email * imported) ->", end='')
+    print(pycomplete("Enc", imports=["from email import *"]))
 
-    print "Enc ->", pycomplete("Enc")
-    print "E ->", pycomplete("E")
+    print("E (email * imported) ->", end='')
+    print(pycomplete("E", imports=["from email import *"]))
+
+    print("Enc ->", pycomplete("Enc"))
+    print("E ->", pycomplete("E"))
 
 import inspect
-from StringIO import StringIO
+from io import StringIO
 
 from Pymacs import lisp
 sys.path.append('.')
@@ -167,10 +172,10 @@ def pysignature(s):
     f = None
     try:
         f = eval(s)
-    except Exception, ex:
+    except Exception as ex:
         return "%s" % ex
     if inspect.ismethod(f):
-        f = f.im_func
+        f = f.__func__
     if not inspect.isroutine(f):
         return ''
     doc = inspect.getdoc(f)
@@ -188,7 +193,7 @@ def _getdoc(s):
     obj = None
     try:
         obj = eval(s)
-    except Exception, ex:
+    except Exception as ex:
         return "%s" % ex
     out = StringIO()
     old = sys.stdout
@@ -202,9 +207,9 @@ def _import_modules(imports, dglobals, dlocals):
     if imports is not None:
         for stmt in imports:
             try:
-                exec stmt.strip() in dglobals, dlocals
+                exec(stmt.strip(), dglobals, dlocals)
             except TypeError:
-                raise TypeError, 'invalid type: %s' % stmt
+                raise TypeError('invalid type: %s' % stmt)
             except:
                 continue
 
