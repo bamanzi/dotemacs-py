@@ -131,7 +131,7 @@ def pycomplete(s, imports=None, cwd=None):
 def exec_lines(lines):
     """Exec LINES in pymacs' global namespace, so that later completion would have better inspection.
     """
-    if lines.startswith(" "):
+    if lines.startswith(b" "):
         lines = 'if True:\n' + lines
     exec(lines, globals())
     
