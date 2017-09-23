@@ -4,19 +4,54 @@
                           (file-name-directory load-file-name)
                         default-directory))
 
+(defvar pythonpath-common (getenv "PYTHONPATH")
+  "Value of env-var PYTHONPATH common for python 2.x && 3.x.")
+
 (progn
   (add-to-list 'load-path (concat dotemacs-py-dir "elisp"))
   (add-to-list 'Info-default-directory-list (concat dotemacs-py-dir "info"))
   (setq Info-directory-list nil)
-  (setenv "PYTHONPATH"
-          (concat dotemacs-py-dir "python-libs" path-separator
-                  (getenv "PYTHONPATH")))
+
+  (setq pythonpath-common
+        (concat dotemacs-py-dir "python-libs" path-separator
+                (getenv "PYTHONPATH")))
+  )
+
+(defun setup-python2 ()
+  (interactive)
+  
+  (setenv "PYTHONPATH" pythonpath-common)
+
   (setenv "PATH"
           (concat dotemacs-py-dir "bin" path-separator
                   (getenv "PATH")))
-  (add-to-list 'exec-path (concat dotemacs-py-dir "bin")))
- 
-               
+  
+  (add-to-list 'exec-path (concat dotemacs-py-dir "bin"))
+
+  (setq python-shell-interpreter (if (executable-find "python2")
+                                     "python2"
+                                   "python"))
+  (setq pymacs-python-command python-shell-interpreter))
+
+
+(defun setup-python3 ()
+  (interactive)
+  (setenv "PYTHONPATH" (concat dotemacs-py-dir "python3-libs" path-separator
+                               pythonpath-common))
+
+  (setenv "PATH"
+          (concat dotemacs-py-dir "bin-py3" path-separator
+                  (getenv "PATH")))
+  (add-to-list 'exec-path (concat dotemacs-py-dir "bin-py3"))
+
+  (setq python-shell-interpreter (if (executable-find "python3")
+                                     "python3"
+                                   "python"))
+  (setq pymacs-python-command python-shell-interpreter))
+
+
+(setup-python3)
+
 
 
 ;; ** python.el: use fganilla's python.el
