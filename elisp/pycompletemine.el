@@ -286,12 +286,14 @@ Key bindings:
   :lighter " pyc"
   :keymap py-complete-mode-map
   (if py-complete-mode
-      ;; turn off
-      (message "py-complete-mode disabled.")
-    ;; turn on
-    (unless (functionp 'pycomplete-pycomplete)
-      (pymacs-load "pycomplete"))
-    (message "py-complete-mode enabled.")))
+      ;; turn on
+      (progn
+        (unless (functionp 'pycomplete-pycomplete)
+          (pymacs-load "pycomplete"))
+        (message "py-complete-mode enabled."))
+    ;; turn off
+    (message "py-complete-mode disabled.")))
+
      
 
 (provide 'pycompletemine)
