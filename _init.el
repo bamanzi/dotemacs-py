@@ -590,12 +590,19 @@ default to utf-8."
 ;; *** anaconda-mode
 ;; https://github.com/proofit404/anaconda-mode
 
-;; anacond-mode >= 0.1.2
-(setq anaconda-mode-installation-directory
-      (concat dotemacs-py-dir "python-libs"))
+(eval-after-load "anaconda-mode"
+  `(progn
+     ;; anacond-mode >= 0.1.2
+     (setq anaconda-mode-installation-directory
+           (concat dotemacs-py-dir "python-libs"))
+     
+     ;; we don't use '0.1.7' subdir
+     (defun anaconda-mode-server-directory ()
+       anaconda-mode-installation-directory)
 
-;; in case we've installed anaconda-mode <= 0.1.1
-(setq anaconda-mode-server-directory anaconda-mode-installation-directory)
+     ;; in case we've installed anaconda-mode <= 0.1.1
+     (setq anaconda-mode-server-directory anaconda-mode-installation-directory)
+     ))
 
 (autoload 'anaconda-mode "anaconda-mode"
   "Code navigation, documentation lookup and completion for Python." t)
