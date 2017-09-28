@@ -108,8 +108,9 @@
   (if (fboundp 'setq-mode-local)
       (setq-mode-local python-mode
                        imenu-create-index-function 'python-imenu-create-index))
-;;  (remove-hook 'python-mode-hook 'semantic-python-setup)
-  (setq imenu-create-index-function 'python-imenu-create-index))
+  ;;  (remove-hook 'python-mode-hook 'semantic-python-setup)
+  (if (fboundp 'python-imenu-create-index)
+      (setq imenu-create-index-function 'python-imenu-create-index)))
 
 
 ;; ** pymacs: interface between emacs lisp and python
