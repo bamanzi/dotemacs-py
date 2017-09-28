@@ -782,6 +782,8 @@ default to utf-8."
          :help "Call `pydoc' command line utility."]
         ["Pydoc (helm)..." helm-pydoc
          :help "Call `pydoc' with helm interface."]
+        ["Open module (via helm-pydoc)..." helm-pydoc
+         :help "Open python module via `helm-pydoc'."]        
         ["Info page on symbol..." anything-info-python
          :help "Lookup document in file `python.info' (with `anything')."]
         "---"
