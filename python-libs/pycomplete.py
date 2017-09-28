@@ -51,6 +51,9 @@ def get_all_completions(s, imports=None):
 
     If given, imports is a list of import statements to be executed first.
     """
+    if type(s)==type(b''):
+        s = s.decode('utf-8')
+    
     locald = {}
     if imports is not None:
         for stmt in imports:
@@ -109,6 +112,9 @@ def get_all_completions_for_ac(s, imports=None):
     is assumed to be compliant with `auto-complete' rather than `complete-symbol'
     
     """
+    if type(s)==type(b''):
+        s = s.decode('utf-8')
+    
     completions = get_all_completions(s, imports)
     dots = s.split(".")
     prefix = ".".join(dots[0:-1])
@@ -116,6 +122,8 @@ def get_all_completions_for_ac(s, imports=None):
     
     
 def pycomplete(s, imports=None, cwd=None):
+    if type(s)==type(b''):
+        s = s.decode('utf-8')
     if not s:
         return ''
     if cwd and os.path.isdir(cwd):
@@ -131,7 +139,10 @@ def pycomplete(s, imports=None, cwd=None):
 def exec_lines(lines):
     """Exec LINES in pymacs' global namespace, so that later completion would have better inspection.
     """
-    if lines.startswith(b" "):
+    if type(lines)==type(b''):
+        lines = lines.decode('utf-8')
+    
+    if lines.startswith(" "):
         lines = 'if True:\n' + lines
     exec(lines, globals())
     
@@ -158,10 +169,14 @@ from io import StringIO
 from Pymacs import lisp
 sys.path.append('.')
 
+
 def pyhelp(s, imports=None, cwd=None):
-    """Return object description"""
+    """Return object description"""    
     if not s:
         return ''
+    if type(s)==type(b''):
+        s = s.decode('utf-8')
+    
     if cwd and os.path.isdir(cwd):
         os.chdir(cwd)
     _import_modules(imports, globals(), None)
@@ -169,6 +184,9 @@ def pyhelp(s, imports=None, cwd=None):
 
 def pysignature(s):
     """Return info about function parameters"""
+    if type(s)==type(b''):
+        s = s.decode('utf-8')
+    
     f = None
     try:
         f = eval(s)
