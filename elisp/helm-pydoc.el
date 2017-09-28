@@ -1,11 +1,11 @@
 ;;; helm-pydoc.el --- pydoc with helm interface -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015 by Syohei YOSHIDA
+;; Copyright (C) 2016 by Syohei YOSHIDA
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-helm-pydoc
 ;; Version: 0.07
-;; Package-Requires: ((helm-core "1.7.4") (cl-lib "0.5"))
+;; Package-Requires: ((helm-core "2.0") (emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,8 +34,7 @@
 
 (defcustom helm-pydoc-virtualenv "venv"
   "Directory name containing virtualenv."
-  :type 'string
-  :group 'helm-pydoc)
+  :type 'string)
 
 (defvar helm-pydoc--collect-command
   (if load-file-name
@@ -154,28 +153,26 @@
                      candidate imports name)))
     (helm-pydoc--insert-import-statement statement)))
 
-(define-helm-type-attribute 'pydoc
-  '((action . (("Pydoc Module" . helm-pydoc--do-pydoc)
-               ("View Source Code" . helm-pydoc--view-source)
-               ("Import Module(import module)" . helm-pydoc--import-module)
-               ("Import Module(from module import identifiers)"
-                . helm-pydoc--from-import-module)
-               ("Import Module(from module import identifiers as name)"
-                . helm-pydoc--from-import-as-module)))
-    "pydoc helm attribute"))
+(defvar helm-pydoc--actions
+  '(("Pydoc Module" . helm-pydoc--do-pydoc)
+    ("View Source Code" . helm-pydoc--view-source)
+    ("Import Module(import module)" . helm-pydoc--import-module)
+    ("Import Module(from module import identifiers)"
+     . helm-pydoc--from-import-module)
+    ("Import Module(from module import identifiers as name)"
+     . helm-pydoc--from-import-as-module)))
 
 (defvar helm-pydoc--imported-source
-  '((name . "Imported Modules")
-    (candidates . helm-pydoc--collect-imported-modules)
-    (type . pydoc)
-    (candidate-number-limit . 9999)))
+  (helm-build-sync-source "Imported Modules"
+    :candidates 'helm-pydoc--collect-imported-modules
+    :action helm-pydoc--actions
+    :candidate-number-limit 9999))
 
 (defvar helm-pydoc--installed-source
-  '((name . "Installed Modules")
-    (init . helm-pydoc--init)
-    (candidates-in-buffer)
-    (type . pydoc)
-    (candidate-number-limit . 9999)))
+  (helm-build-in-buffer-source "Installed Modules"
+    :init 'helm-pydoc--init
+    :action helm-pydoc--actions
+    :candidate-number-limit 9999))
 
 (defvar helm-pydoc--history nil)
 
