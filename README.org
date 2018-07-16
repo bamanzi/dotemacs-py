@@ -1,113 +1,5 @@
 * Knowledge Base of Python on Emacs
 
-** General How-to
-  * [[http://www.emacswiki.org/emacs/PythonProgrammingInEmacs][EmacsWiki: Python Programming In Emacs]]
-
-  * [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][Emacs as a powerful Python IDE]] - [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][EnigmaCurry]] (May 09, 2008)
-  * [[http://hide1713.wordpress.com/2009/01/30/setup-perfect-python-environment-in-emacs/][Setup Perfect Python Environment In Emacs « The website of Lei Chen]] (Jan 30, 2009)
-  * [[http://www.saltycrane.com/blog/2010/05/my-emacs-python-environment/][My Emacs Python environment << SaltyCrane Blog]] (May 10, 2010, Updated at Apr 24, 2011)
-  * [[http://pedrokroger.net/2010/07/configuring-emacs-as-a-python-ide-2/][Configuring Emacs as a Python IDE - Pedro Kroger]] (Jul 15, 2010)
-  * [[http://coder.cl/2010/09/emacs-as-python-ide/][emacs as python ide | coder . cl]] (Sep 30, 2010)
-  * [[http://nipy.sourceforge.net/devel/tools/tricked_out_emacs.html][Neuroimaging in Python — Community Page]] (Jul 23, 2011)
-  * [[http://www.kurup.org/blog/2012/10/24/emacs-for-python-programming/][Emacs for Python Programming - Vinod Kurup]] (Oct 24, 2012)
-
-*** Chinese
-  * [[http://www.cnblogs.com/coderzh/archive/2009/12/26/emacspythonide.html][Emacs中打造强大的Python IDE - CoderZh - 博客园]] (Dec 26, 2009)
-  * [[http://mmmyddd.freeshell.net/blog.cgi/Computer/Python/delightedprogpythonunderemacs][Enjoy Python under Emacs - Justin's Blog]] (Mar 28, 2010)
-** All-in-one suite
-*** emacs-for-python
-# <epy>
-https://github.com/gabrielelanaro/emacs-for-python
-
-*** pdee
-https://github.com/pdee/pdee
-Based on [[emacs-for-python]]
-
-*** [[https://github.com/jorgenschaefer/elpy][Elpy, the Emacs Lisp Python Environment]]
-# <elpy>
-     * Code completion (using auto-complete and rope)
-     * Indentation highlighting (using highlight-indentation)
-     * Snippet Expansion (using yasnippet and auto-complete)
-     * Code hinting (using eldoc and rope)
-     * Code Navigation (using rope and python.el)
-     * Inline Documentation (using rope)
-     * On-the-fly checks (using flymake)
-     * Virtualenv support (using virtualenv)
-     * Python web documentation
-     * Refactoring (using rope)
-     * Easy IPython support for those who use it
-
-cons:
-  - it requires emacs-24
-
-*** others
-  * empetado 
-https://github.com/haplo/empetado
-
-#+begin_quote
-empetado stands for EMacs Python Enhanced Tight Ass DOmination. It's a funny word in Spanish, but
-you won't find it in your usual dictionary. Let's just say that it refers to this configuration
-being full of coolness, awesomeness and wonderfulness.
-
-empetado is basically my emacs configuration, anything I find useful will probably find its way
-here. The first thing I wanted to have was good Python support (hint: it didn't come first, nor
-second, nor third...), but there are more things in there, like git and subversion support,
-org-mode, ido/smex, yasnippet, desktop-mode, EMMS...
-#+end_quote
-
-based on [[emacs-for-python]]. There're seems no too much added value.
-
-
-** Major modes
-*** built-in
-(emacs-24 uses [[fgallina's python.el]])
-*** python-mode.el
-https://launchpad.net/python-mode
-*** fgallina' python.el
-http://github.com/fgallina/python.el
-(now part of Emacs-24)
-
-   * [[http://lists.gnu.org/archive/html/emacs-devel/2011-02/msg00655.html][A new major-mode for Python]]
-
-Here is the list of what it currently implements:
-    * Syntax highlighting
-    * Solid (auto)indentation support
-    * auto-detection of indentation levels for current file
-    * Triple quoted strings support (stolen without guilt from
-      GNU/Emacs' original python.el)
-    * Fancy variable assignment colorization
-    * Movement commands you’ll expect from a major-mode.
-    * Python shell integration (not only for Python 2 but also Python 3!)
-    * Python shell completion (Same as above!)
-    * Nice generic shell integration that could support virtually any
-      text based python shell
-    * PDB Tracking (it even supports ipdb!)
-    * Symbol completion that sucks because a running inferior shell
-      process and valid code in the current buffer are needed (Don’t
-      blame me, it’s like that in every python-mode I know). I don’t
-      use this thing a lot, I use ropemacs instead
-    * Eldoc support (this suffers the same drawbacks as the symbol
-      completion, but it’s the only sane way to do it from Elisp)
-    * add-log-current-defun support
-    * hideshow support
-    * outline support
-    * fill paragraph
-
-Things that (perhaps) are good to add at some point:
-
-    * python-check
-    * ffap support (I never used it though)
-    * some skeletons (I never used them since I use yasnippet)
-
-Things I don't think are necessary to be added:
-
-    * Bicycle Repair Man integration: since it is discontinued and
-      there are other really nice refactoring tools out there (like
-      rope which can be integrated via ropemacs).   
-
-*** loveshack's python.el
-http://www.loveshack.ukfsn.org/emacs/#python.el
-
 ** Code Navigation
 *** etags/ctags
 *** [[ropemacs]]
@@ -374,6 +266,114 @@ Code-assists:
      1. An XMLRPC server exposing the rope API, and
      2. Client libraries (currently just emacs lisp) for talking to the server
 
+* Backup Info 
+
+** General How-to
+  * [[http://www.emacswiki.org/emacs/PythonProgrammingInEmacs][EmacsWiki: Python Programming In Emacs]]
+
+  * [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][Emacs as a powerful Python IDE]] - [[http://www.enigmacurry.com/2008/05/09/emacs-as-a-powerful-python-ide/][EnigmaCurry]] (May 09, 2008)
+  * [[http://hide1713.wordpress.com/2009/01/30/setup-perfect-python-environment-in-emacs/][Setup Perfect Python Environment In Emacs « The website of Lei Chen]] (Jan 30, 2009)
+  * [[http://www.saltycrane.com/blog/2010/05/my-emacs-python-environment/][My Emacs Python environment << SaltyCrane Blog]] (May 10, 2010, Updated at Apr 24, 2011)
+  * [[http://pedrokroger.net/2010/07/configuring-emacs-as-a-python-ide-2/][Configuring Emacs as a Python IDE - Pedro Kroger]] (Jul 15, 2010)
+  * [[http://coder.cl/2010/09/emacs-as-python-ide/][emacs as python ide | coder . cl]] (Sep 30, 2010)
+  * [[http://nipy.sourceforge.net/devel/tools/tricked_out_emacs.html][Neuroimaging in Python — Community Page]] (Jul 23, 2011)
+  * [[http://www.kurup.org/blog/2012/10/24/emacs-for-python-programming/][Emacs for Python Programming - Vinod Kurup]] (Oct 24, 2012)
+
+*** Chinese
+  * [[http://www.cnblogs.com/coderzh/archive/2009/12/26/emacspythonide.html][Emacs中打造强大的Python IDE - CoderZh - 博客园]] (Dec 26, 2009)
+  * [[http://mmmyddd.freeshell.net/blog.cgi/Computer/Python/delightedprogpythonunderemacs][Enjoy Python under Emacs - Justin's Blog]] (Mar 28, 2010)
+** All-in-one suite
+*** emacs-for-python
+# <epy>
+https://github.com/gabrielelanaro/emacs-for-python
+
+*** pdee
+https://github.com/pdee/pdee
+Based on [[emacs-for-python]]
+
+*** [[https://github.com/jorgenschaefer/elpy][Elpy, the Emacs Lisp Python Environment]]
+# <elpy>
+     * Code completion (using auto-complete and rope)
+     * Indentation highlighting (using highlight-indentation)
+     * Snippet Expansion (using yasnippet and auto-complete)
+     * Code hinting (using eldoc and rope)
+     * Code Navigation (using rope and python.el)
+     * Inline Documentation (using rope)
+     * On-the-fly checks (using flymake)
+     * Virtualenv support (using virtualenv)
+     * Python web documentation
+     * Refactoring (using rope)
+     * Easy IPython support for those who use it
+
+cons:
+  - it requires emacs-24
+
+*** others
+  * empetado 
+https://github.com/haplo/empetado
+
+#+begin_quote
+empetado stands for EMacs Python Enhanced Tight Ass DOmination. It's a funny word in Spanish, but
+you won't find it in your usual dictionary. Let's just say that it refers to this configuration
+being full of coolness, awesomeness and wonderfulness.
+
+empetado is basically my emacs configuration, anything I find useful will probably find its way
+here. The first thing I wanted to have was good Python support (hint: it didn't come first, nor
+second, nor third...), but there are more things in there, like git and subversion support,
+org-mode, ido/smex, yasnippet, desktop-mode, EMMS...
+#+end_quote
+
+based on [[emacs-for-python]]. There're seems no too much added value.
+
+** Major modes
+*** built-in
+(emacs-24 uses [[fgallina's python.el]])
+*** python-mode.el
+https://launchpad.net/python-mode
+*** fgallina' python.el
+http://github.com/fgallina/python.el
+(now part of Emacs-24)
+
+   * [[http://lists.gnu.org/archive/html/emacs-devel/2011-02/msg00655.html][A new major-mode for Python]]
+
+Here is the list of what it currently implements:
+    * Syntax highlighting
+    * Solid (auto)indentation support
+    * auto-detection of indentation levels for current file
+    * Triple quoted strings support (stolen without guilt from
+      GNU/Emacs' original python.el)
+    * Fancy variable assignment colorization
+    * Movement commands you’ll expect from a major-mode.
+    * Python shell integration (not only for Python 2 but also Python 3!)
+    * Python shell completion (Same as above!)
+    * Nice generic shell integration that could support virtually any
+      text based python shell
+    * PDB Tracking (it even supports ipdb!)
+    * Symbol completion that sucks because a running inferior shell
+      process and valid code in the current buffer are needed (Don’t
+      blame me, it’s like that in every python-mode I know). I don’t
+      use this thing a lot, I use ropemacs instead
+    * Eldoc support (this suffers the same drawbacks as the symbol
+      completion, but it’s the only sane way to do it from Elisp)
+    * add-log-current-defun support
+    * hideshow support
+    * outline support
+    * fill paragraph
+
+Things that (perhaps) are good to add at some point:
+
+    * python-check
+    * ffap support (I never used it though)
+    * some skeletons (I never used them since I use yasnippet)
+
+Things I don't think are necessary to be added:
+
+    * Bicycle Repair Man integration: since it is discontinued and
+      there are other really nice refactoring tools out there (like
+      rope which can be integrated via ropemacs).   
+
+*** loveshack's python.el
+http://www.loveshack.ukfsn.org/emacs/#python.el
 
 ** Django
 
@@ -387,7 +387,6 @@ Code-assists:
 *** [[https://gist.github.com/3791747][Gist: mrmagooey's Emacs configuration file aimed at Django web developers]]
 
 *** [[https://code.djangoproject.com/ticket/19266][django documentation in texinfo format]]
- 
 ** misc
 *** [[http://page.sourceforge.net/python-mode-extensions.html][Python-mode Extensions]] (py-mode-ext, pyp)
 *** [[http://www.cnblogs.com/foreveryl/archive/2012/08/23/2652469.html][(emacs) python代码折叠 - foreveryl - 博客园]]
