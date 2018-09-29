@@ -156,6 +156,49 @@ This variant of `rx' supports common Python named REGEXPS."
 	      (t
 	       (rx-to-string (car regexps) t))))))
 
+  ;;old version (emacs<=24.3) of `python-shell-send-region' won't use `python-shell-buffer-substring',
+  ;;which is better than plain `buffer-substring' (see below)
+  (defun python-shell-send-region (start end &optional send-main msg)
+    "Send the region delimited by START and END to inferior Python process.
+When optional argument SEND-MAIN is non-nil, allow execution of
+code inside blocks delimited by \"if __name__== \\='__main__\\=':\".
+When called interactively SEND-MAIN defaults to nil, unless it's
+called with prefix argument.  When optional argument MSG is
+non-nil, forces display of a user-friendly message if there's no
+process running; defaults to t when called interactively."
+    (interactive
+     (list (region-beginning) (region-end) current-prefix-arg t))
+    (let* ((string (python-shell-buffer-substring start end (not send-main)))
+	   (process (python-shell-get-process-or-error msg))
+	   (original-string (buffer-substring-no-properties start end))
+	   (_ (string-match "\\`\n*\\(.*\\)" original-string)))
+      (message "Sent: %s..." (match-string 1 original-string))
+      (python-shell-send-string string process)))
+
+  ;;needed by `python-shell-buffer-string'
+  (defun python-nav-if-name-main ()
+    "Move point at the beginning the __main__ block.
+When \"if __name__ == \\='__main__\\=':\" is found returns its
+position, else returns nil."
+    (interactive)
+    (let ((point (point))
+	  (found (catch 'found
+		   (goto-char (point-min))
+		   (while (re-search-forward
+			   (python-rx line-start
+				      "if" (+ space)
+				      "__name__" (+ space)
+				      "==" (+ space)
+				      (group-n 1 (or ?\" ?\'))
+				      "__main__" (backref 1) (* space) ":")
+			   nil t)
+		     (when (not (python-syntax-context-type))
+		       (beginning-of-line)
+		       (throw 'found t))))))
+      (if found
+	  (point)
+	(ignore (goto-char point)))))
+  
   ;; http://debbugs.gnu.org/cgi/bugreport.cgi?bug=21086
   (defun python-shell-buffer-substring (start end &optional nomain)
     "Send buffer substring from START to END formatted for shell.
