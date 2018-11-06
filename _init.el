@@ -107,10 +107,10 @@
   (interactive)
   (if (fboundp 'setq-mode-local)
       (setq-mode-local python-mode imenu-create-index-function
-		       (if (fboundp 'python-imenu-create-index)
-			   ;; emacs <= 24.3 has no `python-imenu-create-index'
-			   'python-imenu-create-index
-			 'imenu-default-create-index-function)
+                       (if (fboundp 'python-imenu-create-index)
+                           ;; emacs <= 24.3 has no `python-imenu-create-index'
+                           'python-imenu-create-index
+                         'imenu-default-create-index-function)))
   ;;  (remove-hook 'python-mode-hook 'semantic-python-setup)
   (if (fboundp 'python-imenu-create-index)
       (setq imenu-create-index-function 'python-imenu-create-index)))
