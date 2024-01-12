@@ -420,6 +420,30 @@
            (gud-query-cmdline 'pdb))))
   (pdb cmdline))
 
+;; *** pdbpp tracking on GUD
+;; tested on emacs 26.1 & 27.1
+(eval-after-load "gud"
+  `(progn
+     ;; so we can leave the default value
+     (make-variable-buffer-local 'gud-pdb-marker-regexp-start)
+     (make-variable-buffer-local 'gud-pdb-marker-regexp)
+     ))
+
+(defun gud-pdb-enable-pdbpp-tracking ()
+  (interactive)
+  (unless (string-match "\\*gud-pdb.*" (buffer-name))
+    (user-error "Error: you need to invoke this command (`gud-pdb-enable-pdbpp-tracking`) on a *PDB* buffer"))
+  (setq gud-pdb-marker-regexp-start "^\\[[0-9]+\\] > "
+        gud-pdb-marker-regexp (concat gud-pdb-marker-regexp-start
+                                      "\\([[:graph:] \\]*\\)(\\([0-9]+\\))\\([a-zA-Z0-9_]*\\|\\?\\|"
+                                      "<\\(?:module\\|listcomp\\|dictcomp\\|setcomp\\|genexpr\\|lambda\\|\\)>"
+                                      "\\)()\\(->[^\n\r]*\\)?[\n\r]")
+        gud-marker-filter 'gud-pdbpp-marker-filter))
+
+(defun gud-pdbpp-marker-filter (string)
+  (let ((output (ansi-color-filter-apply string)))
+    (gud-pdb-marker-filter output)))
+
 ;; *** pdb, pydb, pydbgr (realgud)
 
 ;; ** python shell
