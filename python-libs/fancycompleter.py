@@ -2,12 +2,10 @@
 fancycompleter: colorful TAB completion for Python prompt
 """
 from __future__ import with_statement
-
-__version__='0.4'
-__author__ ='Antonio Cuni <anto.cuni@gmail.com>'
-__url__='http://bitbucket.org/antocuni/fancycompleter'
+from __future__ import print_function
 
 import rlcompleter
+import sys
 import types
 import os.path
 from itertools import count
@@ -15,6 +13,8 @@ try:
     reduce
 except NameError:
     from functools import reduce
+
+PY3K = sys.version_info[0] >= 3
 
 # python3 compatibility
 # ---------------------
@@ -32,6 +32,43 @@ try:
     unicode
 except NameError:
     unicode = str
+
+# ----------------------
+
+class LazyVersion(object):
+
+    def __init__(self, pkg):
+        self.pkg = pkg
+        self.__version = None
+
+    @property
+    def version(self):
+        if self.__version is None:
+            self.__version = self._load_version()
+        return self.__version
+
+    def _load_version(self):
+        try:
+            from pkg_resources import get_distribution, DistributionNotFound
+        except ImportError:
+            return 'N/A'
+        #
+        try:
+            return get_distribution(self.pkg).version
+        except DistributionNotFound:
+            # package is not installed
+            return 'N/A'
+
+    def __repr__(self):
+        return self.version
+
+    def __eq__(self, other):
+        return self.version == other
+
+    def __ne__(self, other):
+        return not self == other
+
+__version__ = LazyVersion(__name__)
 
 # ----------------------
 
@@ -106,9 +143,27 @@ class DefaultConfig:
         else:
             return pyrepl.readline, False
 
+    def find_pyreadline(self):
+        try:
+            import readline
+            import pyreadline
+            from pyreadline.modes import basemode
+        except ImportError:
+            return None
+        if hasattr(basemode, 'stripcolor'):
+            # modern version of pyreadline; see:
+            # https://github.com/pyreadline/pyreadline/pull/48
+            return readline, True
+        else:
+            return readline, False
+
     def find_best_readline(self):
         if self.prefer_pyrepl:
             result = self.find_pyrepl()
+            if result:
+                return result
+        if sys.platform == 'win32':
+            result = self.find_pyreadline()
             if result:
                 return result
         import readline
@@ -140,7 +195,9 @@ class ConfigurableClass:
             try:
                 my_execfile(rcfile, mydict)
                 return mydict['Config']()
-            except Exception as e:
+            except Exception:
+                # python 2.5 compatibility, can't use 'except Exception as e'
+                e = sys.exc_info()[1]
                 print('** error when importing %s: %s **' % (filename, e))
         return self.DefaultConfig()
 
@@ -204,21 +261,26 @@ class Completer(rlcompleter.Completer, ConfigurableClass):
                 values.append(None)
             else:
                 values.append(eval(name, self.namespace))
-        matches = [self.color_for_obj(i, name, obj)
-                   for i, name, obj
-                   in izip(count(), names, values)]
-        return matches + [' ']
+        return self.color_matches(names, values)
 
     def attr_matches(self, text):
         import re
         expr, attr = text.rsplit('.', 1)
         if '(' in expr or ')' in expr:  # don't call functions
             return
-        object = eval(expr, self.namespace)
+        try:
+            object = eval(expr, self.namespace)
+        except Exception:
+            return []
         names = []
         values = []
         n = len(attr)
         for word in dir(object):
+            if isinstance(word, unicode) and not PY3K:
+                # this is needed because pyrepl doesn't like unicode
+                # completions: as soon as it finds something which is not str,
+                # it stops.
+                word = word.encode('utf-8')
             if word[:n] == attr and word != "__builtins__":
                 names.append(word)
                 try:
@@ -230,13 +292,17 @@ class Completer(rlcompleter.Completer, ConfigurableClass):
         prefix = commonprefix(names)
         if prefix and prefix != attr:
             return ['%s.%s' % (expr, prefix)] # autocomplete prefix
+        return self.color_matches(names, values)
 
-        matches = [self.color_for_obj(i, name, value)
-                   for i, name, value
+    def color_matches(self, names, values):
+        matches = [self.color_for_obj(i, name, obj)
+                   for i, name, obj
                    in izip(count(), names, values)]
         # we add a space at the end to prevent the automatic completion of the
         # common prefix, which is the ANSI ESCAPE sequence
-        return matches + [' ']
+        if matches:
+            return matches + [' ']
+        return []
 
     def color_for_obj(self, i, name, value):
         if not self.config.use_colors:
@@ -259,8 +325,9 @@ def commonprefix(names, base = ''):
 
     if base:
         names = filter(lambda x, base=base: x.startswith(base), names)
-        if not names:
-            return ''
+        names = list(names) # for py3k
+    if not names:
+        return ''
     return reduce(commonfunc,names)
 
 
@@ -346,3 +413,67 @@ def interact(persist_history=None):
         # standard one is fake enough :-)
         interact_pyrepl()
         sys.exit()
+
+
+class Installer(object):
+    """
+    Helper to install fancycompleter in PYTHONSTARTUP
+    """
+
+    def __init__(self, basepath, force):
+        fname = os.path.join(basepath, 'python_startup.py')
+        self.filename = os.path.expanduser(fname)
+        self.force = force
+
+    def check(self):
+        PYTHONSTARTUP = os.environ.get('PYTHONSTARTUP')
+        if PYTHONSTARTUP:
+            return 'PYTHONSTARTUP already defined: %s' % PYTHONSTARTUP
+        if os.path.exists(self.filename):
+            return '%s already exists' % self.filename
+
+    def install(self):
+        import textwrap
+        error = self.check()
+        if error and not self.force:
+            print(error)
+            print('Use --force to overwrite.')
+            return False
+        with open(self.filename, 'w') as f:
+            f.write(textwrap.dedent("""
+                import fancycompleter
+                fancycompleter.interact(persist_history=True)
+            """))
+        self.set_env_var()
+        return True
+
+    def set_env_var(self):
+        if sys.platform == 'win32':
+            os.system('SETX PYTHONSTARTUP "%s"' % self.filename)
+            print('%PYTHONSTARTUP% set to', self.filename)
+        else:
+            print('startup file written to', self.filename)
+            print('Append this line to your ~/.bashrc:')
+            print('    export PYTHONSTARTUP=%s' % self.filename)
+
+
+if __name__ == '__main__':
+    def usage():
+        print('Usage: python -m fancycompleter install [-f|--force]')
+        sys.exit(1)
+    
+    cmd = None
+    force = False
+    for item in sys.argv[1:]:
+        if item in ('install',):
+            cmd = item
+        elif item in ('-f', '--force'):
+            force = True
+        else:
+            usage()
+    #
+    if cmd == 'install':
+        installer = Installer('~', force)
+        installer.install()
+    else:
+        usage()
