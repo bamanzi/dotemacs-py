@@ -444,7 +444,30 @@
   (let ((output (ansi-color-filter-apply string)))
     (gud-pdb-marker-filter output)))
 
+;; *** trepan3k trackping on GUD
+;; trepan3k:
+;;   (/home/pi/.emacs.d/packages/dotemacs-py/python-libs/pep8.py:1360 @788): <module>
+;;   xx 1360     _main()
+;;   (trepan3k)
+;; or
+;;   (/home/pi/.emacs.d/packages/dotemacs-py/python-libs/pep8.py:1331): _main
+;;   -- 1331     options, args = process_options()
+;;   (trepan3k) 
+
+(defun gud-pdb-enable-trepan3k-tracking()
+  (interactive)
+  (unless (string-match "\\*gud-.*\\*" (buffer-name))
+    (user-error "Error: you need to invoke this command (`gud-pdb-enable-trepan3k-tracking`) on a *PDB* buffer"))
+  (setq gud-pdb-marker-regexp-start "^(/"
+        gud-pdb-marker-regexp (concat "^(\\([[:graph:] \\]*\\):\\([0-9]+\\)\\(?: @[0-9]+\\)?): " ; (/file_path:lineno @n):
+                                      "\\([a-zA-Z0-9_]*\\|\\?\\|" ; func_name
+                                      "<\\(?:module\\|listcomp\\|dictcomp\\|setcomp\\|genexpr\\|lambda\\|\\)>" ; <module|xxx>
+                                      "\\)\\(->[^\n\r]*\\)?[\n\r]")
+        gud-marker-filter 'gud-pdbpp-marker-filter))
+
 ;; *** pdb, pydb, pydbgr (realgud)
+
+;; TODO
 
 ;; ** python shell
 (eval-after-load "python"
