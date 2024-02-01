@@ -404,6 +404,13 @@
   (insert "import ipdb; ipdb.set_trace()")
   (highlight-lines-matching-regexp "^[ ]*import ipdb; ipdb.set_trace()"))
 
+(defun python-add-trepan-breakpoint ()
+  "Add a trepan3k break point statement (trepan.api.debug())"
+  (interactive)
+  (newline-and-indent)
+  (insert "import trepan.api; trepan.api.debug()")
+  (highlight-lines-matching-regexp "^[ ]*import trepan.api; trepan.api.debug()"))
+
 ;; https://danielnouri.org/notes/2022/10/14/pdb-tracking-with-emacs-python-mode/
 (defun python-comint-enable-pdbtracking ()
   "enable pdbtracking for pdb/pdbpp session started in eshell/shell."  
@@ -421,16 +428,16 @@
            (gud-query-cmdline 'pdb))))
   (pdb cmdline))
 
-(defun pdbpp (cmdline)
-  "Invoke `gud-pdb' with `pdbpp' (https://pypi.python.org/pypi/pdbpp) "
+(defun trepan3k (cmdline)
+  "Invoke `gud-pdb' with `trepan3k' (https://pypi.python.org/pypi/trepan3k) "
   (interactive
-   (list (let ((gud-pdb-command-name "pdbpp"))
+   (list (let ((gud-pdb-command-name "trepan3k"))
            (require 'gud)
            (gud-query-cmdline 'pdb))))
   (pdb cmdline))
 
 ;; *** pdbpp tracking on GUD
-;; tested on emacs 26.1 & 27.1
+;; tested on emacs 26.1, 27.1 & 28.1
 (eval-after-load "gud"
   `(progn
      ;; so we can leave the default value
@@ -913,11 +920,15 @@ default to utf-8."
           :help "Insert 'import pdb; pdb.set_trace()' at current line."]
          ["insert ipdb breakpoint" python-add-ipdb-breakpoint
           :help "Insert 'import ipdb; ipdb.set_trace()' at current line."]
+         ["insert trepan3k breakpoint" python-add-trepan-breakpoint
+          :help "Insert 'from trepan.api import debug; debug()' at current line."]
          "---"
          ["debug with pdb + gud.el" pdb
           :help "launch debugger with pdb + gud.el"]
          ["debug with ipdb + gud.el" ipdb
           :help "launch debugger with ipdb + gud.el"]
+         ["debug with trepan3k + gud.el" trepan3k
+          :help "launch debugger with trepan3k + gud.el"]         
          ["enable pdbtracking for comint" python-comint-enable-pdbtracking
           :help "enable pdbtracking for pdb/pdbpp session started in eshell/shell."]
          "---"
