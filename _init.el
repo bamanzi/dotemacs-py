@@ -404,6 +404,15 @@
   (insert "import ipdb; ipdb.set_trace()")
   (highlight-lines-matching-regexp "^[ ]*import ipdb; ipdb.set_trace()"))
 
+;; https://danielnouri.org/notes/2022/10/14/pdb-tracking-with-emacs-python-mode/
+(defun python-comint-enable-pdbtracking ()
+  "enable pdbtracking for pdb/pdbpp session started in eshell/shell."  
+  (interactive)
+  (unless (get-buffer-process (current-buffer))
+    (user-error "Error: current buffer is not a comint? get-buffer-process() returns nil."))
+  (add-hook 'comint-output-filter-functions
+            'python-pdbtrack-comint-output-filter-function t))
+
 (defun ipdb (cmdline)
   "Invoke `gud-pdb' with `ipdb' (https://pypi.python.org/pypi/ipdb) "
   (interactive
@@ -505,7 +514,7 @@
 
 ;; stolen from http://wenshanren.org/?p=351
 (defun python-insert-interactive-stmt ()
-  "Insert 'import code; code.interact(local=vars())' at current position."
+  "Add a python shell (real-eval-print loop) into your progrem."
   (interactive)
   (newline-and-indent)
   (insert "import code; code.interact(local=vars())")
@@ -907,12 +916,13 @@ default to utf-8."
          "---"
          ["debug with pdb + gud.el" pdb
           :help "launch debugger with pdb + gud.el"]
-         ["debug with pdbp++ + gud.el" pdbpp
-          :help "launch debugger with pdb++ + gud.el"]
          ["debug with ipdb + gud.el" ipdb
           :help "launch debugger with ipdb + gud.el"]
+         ["enable pdbtracking for comint" python-comint-enable-pdbtracking
+          :help "enable pdbtracking for pdb/pdbpp session started in eshell/shell."]
          "---"
-         ["insert 'code.interact()' here" python-insert-interactive-stmt]
+         ["insert 'code.interact()' here" python-insert-interactive-stmt
+          :help "Add a python shell (real-eval-print loop) into your progrem."]
          )
         ;; project        
         "---"
