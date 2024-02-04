@@ -4,29 +4,27 @@
                           (file-name-directory load-file-name)
                         default-directory))
 
-(defvar pythonpath-common (getenv "PYTHONPATH")
-  "Value of env-var PYTHONPATH common for python 2.x && 3.x.")
+(defconst pythonpath-envvar (getenv "PYTHONPATH")
+  "Value of env-var PYTHONPATH when emacs started.")
 
 (progn
   (add-to-list 'load-path (concat dotemacs-py-dir "elisp"))
   (add-to-list 'Info-default-directory-list (concat dotemacs-py-dir "info"))
-  (setq Info-directory-list nil)
-
-  (setq pythonpath-common
-        (concat dotemacs-py-dir "python-libs" path-separator
-                (getenv "PYTHONPATH")))
+  (setq Info-directory-list nil) ;; force re-init
   )
 
 (defun setup-python2 ()
   (interactive)
   
-  (setenv "PYTHONPATH" pythonpath-common)
+  (setenv "PYTHONPATH" (concat pythonpath-envvar
+                               path-separator        ; ':' on *nix
+                               (concat dotemacs-py-dir "python-libs")))
 
-  (setenv "PATH"
-          (concat dotemacs-py-dir "bin" path-separator
-                  (getenv "PATH")))
+  (setenv "PATH" (concat (getenv "PATH")
+                         path-separator
+                         (concat dotemacs-py-dir "bin")))
   
-  (add-to-list 'exec-path (concat dotemacs-py-dir "bin"))
+  (add-to-list 'exec-path (concat dotemacs-py-dir "bin") 'append)
 
   (setq python-shell-interpreter (if (executable-find "python2")
                                      "python2"
@@ -36,13 +34,17 @@
 
 (defun setup-python3 ()
   (interactive)
-  (setenv "PYTHONPATH" (concat dotemacs-py-dir "python3-libs" path-separator
-                               pythonpath-common))
+  (setenv "PYTHONPATH" (concat pythonpath-envvar
+                               path-separator ; ':' on *unix
+                               (concat dotemacs-py-dir "python3-libs")
+                               path-separator
+                               (concat dotemacs-py-dir "python-libs")))
 
-  (setenv "PATH"
-          (concat dotemacs-py-dir "bin-py3" path-separator
-                  (getenv "PATH")))
-  (add-to-list 'exec-path (concat dotemacs-py-dir "bin-py3"))
+  (setenv "PATH" (concat (getenv "PATH")
+                         path-separator
+                         (concat dotemacs-py-dir "bin-py3")))
+  
+  (add-to-list 'exec-path (concat dotemacs-py-dir "bin-py3") 'append)
 
   (setq python-shell-interpreter (if (executable-find "python3")
                                      "python3"
@@ -51,7 +53,6 @@
 
 
 (setup-python3)
-
 
 
 ;; ** python.el: use fganilla's python.el
