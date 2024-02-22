@@ -152,20 +152,15 @@
      ))
 
 (defun python-mode-init-folding ()
-  ;;hideshow
-  (if (and (display-graphic-p)
-           (require 'hideshowvis nil t))
-      (progn
-        (require 'hideshow-fringe nil t)
-        (hideshowvis-enable))
-    (hs-minor-mode t))
-
   ;;outline
-  (setq outline-regexp "[[:space:]]*\\(?:\\(?:class\\|def\\)\\)\\_>")
-  ;;   (if (fboundp 'qtmstr-outline-mode)
-  ;;       (qtmstr-outline-mode t)
-  ;;     (if (fboundp 'qtmstr-outline-mode-hook)
-  ;;         (qtmstr-outline-mode-hook)))
+  (if (require 'qtmstr-outline nil t)
+      ;;(setq outline-regexp "[[:space:]]*\\(?:\\(?:class\\|def\\)\\)\\_>")
+      ;; `outline-regexp' configured by python.el supports folding for class/def/if/else/for...
+      (qtmstr-outline-mode t)
+    ;;hideshow
+    (if (require 'hideshowvis nil t)
+        (hideshowvis-enable)
+      (hs-minor-mode t)))
   )
 
 (eval-after-load "python"
