@@ -198,8 +198,9 @@
            km)))
 (fset 'qtmstr-outline-header-map qtmstr-outline-header-map)
 
-(define-fringe-bitmap 'qtmstr-fringe-icon-expanded [0 0 0 126 126 0 0 0])
-(define-fringe-bitmap 'qtmstr-fringe-icon-collaped [0 24 24 126 126 24 24 0])
+(when (fboundp 'define-fringe-bitmap)
+  (define-fringe-bitmap 'qtmstr-fringe-icon-expanded [0 0 0 126 126 0 0 0])
+  (define-fringe-bitmap 'qtmstr-fringe-icon-collaped [0 24 24 126 126 24 24 0]))
 
 (defvar qtmstr-outline-overlay-open
   (propertize " "
@@ -280,9 +281,7 @@ add an overlay for this heading."
   (interactive)
   (when (not window-system)
     (if (car (window-margins (selected-window)))
-        (display-warning :warning
-                         "`qtmstr-outline' needs to use left-margin, \n
-        but currenly it seems to be already used (`linum-mode'on?).
+        (message "Warning: `qtmstr-outline' needs to use left-margin, but currenly it seems to be already used (`linum-mode' on?).\n
         Anyway `qtmstr-outline' will continue to turn on."))
     (add-hook 'window-configuration-change-hook
               'qtmstr-outline-update-margin nil 'local)
