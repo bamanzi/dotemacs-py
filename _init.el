@@ -49,6 +49,8 @@
   (setq python-shell-interpreter (if (executable-find "python3")
                                      "python3"
                                    "python"))
+  (message "Current python interpreter set to `%s`. \nYou can change it with M-x customize-variale RET python-shell-interpreter"
+           (executable-find python-shell-interpreter))
   (setq pymacs-python-command python-shell-interpreter))
 
 

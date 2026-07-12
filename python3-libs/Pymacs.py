@@ -40,10 +40,12 @@ import sys
 
 import collections
 
-def callable(value):
-    return isinstance(value, collections.Callable)
+#def callable(value):
+#    return isinstance(value, collections.Callable)
 
 basestring = str
+
+# for Python>=3.12, you need this: pip install zombie-imp
 from imp import reload
 
 
