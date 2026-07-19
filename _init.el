@@ -37,8 +37,9 @@
   (setenv "PYTHONPATH" (concat pythonpath-envvar
                                path-separator ; ':' on *unix
                                (concat dotemacs-py-dir "python-libs-py3")
-                               path-separator
-                               (concat dotemacs-py-dir "python-libs")))
+                               ;;path-separator
+                               ;;(concat dotemacs-py-dir "python-libs")
+                               ))
 
   (setenv "PATH" (concat (getenv "PATH")
                          path-separator
@@ -46,16 +47,20 @@
   
   (add-to-list 'exec-path (concat dotemacs-py-dir "bin-py3") 'append)
 
-  (setq python-shell-interpreter (if (executable-find "python3")
-                                     "python3"
-                                   "python"))
+  (setq python-shell-interpreter (or (getenv "PYTHON")
+                                     (if (executable-find "python3")
+                                         "python3"
+                                       "python")))
   ;; do some checks
   (let ((python-exe (executable-find python-shell-interpreter)))
     (message  "NOTE: Current python interpreter set to `%s`." python-exe)
     (if (string-search "WindowsApps/python" python-exe)
-      (user-error "!!! THIS WON'T WORK: %s" python-exe))
-    (message "You can change it with M-x customize-variale RET python-shell-interpreter"
-             python-exe))
+      (display-warning 'python
+                       (format "!!! THIS WON'T WORK: %s" python-exe)
+                       :error))
+    (display-warning 'python
+                     "You can change it with M-x customize-variale RET python-shell-interpreter"
+                     :warning))
 
   (setq pymacs-python-command python-shell-interpreter))
 
