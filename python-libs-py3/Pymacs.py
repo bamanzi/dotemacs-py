@@ -37,7 +37,6 @@ version = '0.25'
 import os
 import sys
 
-
 import collections
 
 #def callable(value):
@@ -45,10 +44,11 @@ import collections
 
 basestring = str
 
-# for Python>=3.12, you need this: pip install zombie-imp
-from imp import reload
-
-
+try:
+    # module `imp' removed from Python>=3.12, you need this: pip install zombie-imp
+    from imp import reload
+except ImportError:
+    from importlib import reload
 
 
 def fixup_icanon():

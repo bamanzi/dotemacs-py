@@ -36,7 +36,7 @@
   (interactive)
   (setenv "PYTHONPATH" (concat pythonpath-envvar
                                path-separator ; ':' on *unix
-                               (concat dotemacs-py-dir "python3-libs")
+                               (concat dotemacs-py-dir "python-libs-py3")
                                path-separator
                                (concat dotemacs-py-dir "python-libs")))
 
