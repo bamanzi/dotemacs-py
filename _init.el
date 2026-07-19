@@ -49,8 +49,14 @@
   (setq python-shell-interpreter (if (executable-find "python3")
                                      "python3"
                                    "python"))
-  (message "Current python interpreter set to `%s`. \nYou can change it with M-x customize-variale RET python-shell-interpreter"
-           (executable-find python-shell-interpreter))
+  ;; do some checks
+  (let ((python-exe (executable-find python-shell-interpreter)))
+    (message  "NOTE: Current python interpreter set to `%s`." python-exe)
+    (if (string-search "WindowsApps/python" python-exe)
+      (user-error "!!! THIS WON'T WORK: %s" python-exe))
+    (message "You can change it with M-x customize-variale RET python-shell-interpreter"
+             python-exe))
+
   (setq pymacs-python-command python-shell-interpreter))
 
 
