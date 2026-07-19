@@ -1,11 +1,11 @@
 ;;; pythonic.el --- Utility functions for writing pythonic emacs package.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015 by Artem Malyshev
+;; Copyright (C) 2015-2021 by Artem Malyshev
 
 ;; Author: Artem Malyshev <proofit404@gmail.com>
 ;; URL: https://github.com/proofit404/pythonic
-;; Version: 0.1.0
-;; Package-Requires: ((emacs "24") (cl-lib "0.5") (dash "2.11") (s "1.9") (f "0.17.2"))
+;; Version: 0.2
+;; Package-Requires: ((emacs "25.1") (s "1.9") (f "0.17.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,167 +27,248 @@
 ;;; Code:
 
 (require 'python)
-(require 'tramp)
-(require 'tramp-sh)
 (require 'cl-lib)
-(require 'dash)
+(require 'tramp)
 (require 's)
 (require 'f)
 
-(defvaralias 'pythonic-environment
-  (if (boundp 'python-shell-virtualenv-root)
-      'python-shell-virtualenv-root
-    'python-shell-virtualenv-path)
-  "Alias to `python.el' virtualenv variable.")
+(defgroup pythonic nil
+  "Utility functions for writing pythonic emacs package."
+  :group 'python)
+
+
+;;; Connection predicates.
+
+(defun pythonic-local-p ()
+  "Determine local virtual environment."
+  (not (pythonic-remote-p)))
 
 (defun pythonic-remote-p ()
-  "Determine remote or local virtual environment."
-  (if pythonic-environment
-      (tramp-tramp-file-p pythonic-environment)
-    (tramp-tramp-file-p python-shell-interpreter)))
+  "Determine remote virtual environment."
+  (and (tramp-tramp-file-p (pythonic-aliased-path default-directory))
+       t))
 
-(defun pythonic-file-name (file)
-  "Normalized FILE location with out tramp prefix."
-  (if (tramp-tramp-file-p file)
-      (tramp-file-name-localname
-       (tramp-dissect-file-name file))
-    file))
+(defun pythonic-remote-docker-p ()
+  "Determine docker remote virtual environment."
+  (and (pythonic-remote-p)
+       (s-equals-p (pythonic-remote-method) "docker")))
 
-(defun pythonic-tramp-connection ()
-  "Tramp connection string or nil."
-  (-when-let* ((vars (--filter (tramp-tramp-file-p it)
-                               (list pythonic-environment
-                                     python-shell-interpreter)))
-               (var (car vars)))
-    (substring var 0 (- (length var) (length (pythonic-file-name var))))))
+(defun pythonic-remote-ssh-p ()
+  "Determine ssh remote virtual environment."
+  (and (pythonic-remote-p)
+       (member (pythonic-remote-method) '("ssh" "sshx"))))
 
-(defun pythonic-executable ()
-  "Python executable."
-  (let* ((windowsp (eq system-type 'windows-nt))
-         (python (if windowsp "pythonw" "python"))
-         (bin (if windowsp "Scripts" "bin")))
-    (if pythonic-environment
-        (f-join (pythonic-file-name pythonic-environment) bin python)
-      (pythonic-file-name python-shell-interpreter))))
+(defun pythonic-remote-vagrant-p ()
+  "Determine vagrant remote virtual environment."
+  (and (pythonic-remote-p)
+       (s-equals-p (pythonic-remote-host) "localhost")
+       (s-equals-p (pythonic-remote-user) "vagrant")))
 
-(defun pythonic-default-directory (&optional from-directory)
-  "Generate `default-directory' FROM-DIRECTORY."
-  (let ((default-directory
-          (concat (pythonic-tramp-connection)
-                  (or from-directory "~"))))
-    (f-full default-directory)))
+
+;;; Connection properties.
 
-(defun pythonic-set-process-environment ()
-  "Set process environment variables from `python-mode' settings.
-It will use `python-shell-exec-path' for PATH variable,
-`python-shell-extra-pythonpaths' for PYTHONPATH variable."
+(defun pythonic-remote-method ()
+  "Get tramp method of the connection to the remote python interpreter."
+  (tramp-file-name-method (tramp-dissect-file-name (pythonic-aliased-path default-directory))))
+
+(defun pythonic-remote-user ()
+  "Get user of the connection to the remote python interpreter."
+  (tramp-file-name-user (tramp-dissect-file-name (pythonic-aliased-path default-directory))))
+
+(defun pythonic-remote-host ()
+  "Get host of the connection to the remote python interpreter."
+  (let ((hostname (tramp-file-name-host (tramp-dissect-file-name (pythonic-aliased-path default-directory)))))
+    (replace-regexp-in-string "#.*\\'" "" hostname)))
+
+(defun pythonic-remote-port ()
+  "Get port of the connection to the remote python interpreter."
+  (let ((port (tramp-file-name-port (tramp-dissect-file-name (pythonic-aliased-path default-directory)))))
+    ;; In Emacs 25, `tramp-file-name-port' returns number,
+    ;; in Emacs 26, it returns string. This condition makes them compatible.
+    (if (stringp port)
+        (string-to-number port)
+      port)))
+
+
+;;; File names.
+
+(defvar pythonic-directory-aliases nil)
+
+(defun pythonic-aliased-path (path)
+  "Get aliased PATH."
+  (let ((alias-tuple (cl-find-if
+                      (lambda (it)
+                        (or (f-same-p (car it) path)
+                            (f-ancestor-of-p (car it) path)))
+                      pythonic-directory-aliases)))
+    (if (null alias-tuple)
+        path
+      (f-join (cadr alias-tuple)
+              (f-relative path (car alias-tuple))))))
+
+(defun pythonic-unaliased-path (alias)
+  "Get real path from ALIAS."
+  (let ((alias-tuple (cl-find-if
+                      (lambda (it)
+                        (or (f-same-p (cadr it) alias)
+                            (f-ancestor-of-p (cadr it) alias)))
+                      pythonic-directory-aliases)))
+    (if (null alias-tuple)
+        alias
+      (f-join (car alias-tuple)
+              (f-relative alias (cadr alias-tuple))))))
+
+(defun pythonic-has-alias-p (path)
+  "Check if given PATH has alias."
+  (not (null (cl-find-if
+              (lambda (it)
+                (or (f-same-p (car it) path)
+                    (f-ancestor-of-p (car it) path)))
+              pythonic-directory-aliases))))
+
+(defun pythonic-python-readable-file-name (filename)
+  "Emacs to Python FILENAME conversion.
+Take FILENAME from the perspective of the localhost and translate
+it to the FILENAME Python process can read.  Python can be
+running locally or remotely.  FILENAME can have local or tramp
+format.  Result will have local format."
+  (let ((alias (pythonic-aliased-path (expand-file-name filename))))
+    (if (tramp-tramp-file-p alias)
+        (tramp-file-name-localname (tramp-dissect-file-name alias))
+      alias)))
+
+(defun pythonic-emacs-readable-file-name (filename)
+  "Python to Emacs FILENAME conversion.
+Take FILENAME from the perspective of the python interpreter and
+translate it to the FILENAME Emacs `find-file' command can
+understand.  Python can be running locally or remotely.  FILENAME
+should have local format.  Result can have local or tramp
+format."
+  (when (tramp-tramp-file-p filename)
+    (error "%s can not be tramp path" filename))
   (if (pythonic-remote-p)
-      (progn
-        (pythonic-set-pythonpath-variable-tramp)
-        (pythonic-set-path-variable-tramp)
-        (pythonic-set-extra-variables-tramp))
-    (pythonic-set-pythonpath-variable)
-    (pythonic-set-path-variable)
-    (pythonic-set-extra-variables)))
+      (let* ((directory (pythonic-aliased-path default-directory))
+             (connection (substring directory 0
+                                    (- (length directory)
+                                       (length (tramp-file-name-localname (tramp-dissect-file-name directory)))))))
+        (pythonic-unaliased-path (concat connection filename)))
+    filename))
 
-(defun pythonic-get-pythonpath ()
-  "Get appropriate PYTHONPATH variable for pythonic process."
-  (if (pythonic-remote-p)
-      (pythonic-get-pythonpath-variable-tramp)
-    (pythonic-get-pythonpath-variable)))
+
+;;; Docker Compose.
 
-(defun pythonic-get-pythonpath-variable ()
-  "Get PYTHONPATH variable from `python-shell-extra-pythonpaths' variable."
-  (s-join path-separator
-          (->> (or (getenv "PYTHONPATH") "")
-               (s-split path-separator)
-               (-union python-shell-extra-pythonpaths)
-               (-remove 's-blank?)
-               (-distinct))))
+(defcustom pythonic-docker-compose-filename "docker-compose.yml"
+  "File name of the docker-compose project file."
+  :type 'string
+  :safe 'stringp)
 
-(defun pythonic-get-pythonpath-variable-tramp ()
-  "Get PYTHONPATH variable form `python-shell-extra-pythonpaths' on the remote host."
-  (let ((connection (tramp-dissect-file-name (pythonic-tramp-connection))))
-    (s-join path-separator
-            (--> (progn
-                   (tramp-send-command connection "echo $PYTHONPATH")
-                   (with-current-buffer (tramp-get-connection-buffer connection)
-                     (buffer-string)))
-                 (s-trim it)
-                 (s-split ":" it t)
-                 (--remove (member it python-shell-extra-pythonpaths) it)
-                 (append python-shell-extra-pythonpaths it)))))
+(defcustom pythonic-docker-compose-service-name nil
+  "Name of the default service to execute commands."
+  :type 'string
+  :safe 'stringp)
 
-(defun pythonic-set-pythonpath-variable ()
-  "Set PYTHONPATH variable from `python-shell-extra-pythonpaths' variable."
-  (setenv "PYTHONPATH" (pythonic-get-pythonpath-variable)))
+(defvar pythonic-read-docker-compose-file-code "
+from __future__ import print_function
+import json, sys, yaml
+print(json.dumps(yaml.safe_load(open(sys.argv[-1], 'r'))))
+")
 
-(defun pythonic-set-pythonpath-variable-tramp ()
-  "Set PYTHONPATH variable from `python-shell-extra-pythonpaths' variable on remote host."
-  (tramp-send-command
-   (tramp-dissect-file-name (pythonic-tramp-connection))
-   (format
-    "export PYTHONPATH=%s"
-    (pythonic-get-pythonpath-variable-tramp))))
+(defun pythonic-get-docker-compose-project ()
+  "Get directory where `pythonic-docker-compose-filename' is present."
+  (let ((project (locate-dominating-file default-directory pythonic-docker-compose-filename)))
+    (when project
+      (f-full project))))
 
-(defun pythonic-get-path ()
-  "Return appropriate PATH variable for pythonic process."
-  (if (pythonic-remote-p)
-      (pythonic-get-path-variable-tramp)
-    (pythonic-get-path-variable)))
+(defun pythonic-get-docker-compose-filename (project)
+  "Get full path to the docker-compose PROJECT configuration file."
+  (f-join project pythonic-docker-compose-filename))
 
-(defun pythonic-get-path-variable ()
-  "Get PATH variable according to `python-shell-exec-path'."
-  (s-join path-separator
-          (->> (or (getenv "PATH") "")
-               (s-split path-separator)
-               (-union python-shell-exec-path)
-               (-remove 's-blank?)
-               (-distinct))))
+(defun pythonic-read-docker-compose-file (filename)
+  "Read docker-compose project configuration FILENAME."
+  (let ((json-key-type 'string)
+        (json-array-type 'list))
+    (json-read-from-string
+     (with-output-to-string
+       (with-current-buffer
+           standard-output
+         (call-process "python" nil t nil "-c" pythonic-read-docker-compose-file-code filename))))))
 
-(defun pythonic-get-path-variable-tramp ()
-  "Get PATH variable on remote host according to `python-shell-exec-path'."
-  (let* ((vec (tramp-dissect-file-name (pythonic-tramp-connection)))
-         (path (-distinct (append python-shell-exec-path (tramp-get-remote-path vec)))))
-    (s-join path-separator path)))
+(defun pythonic-get-docker-compose-volumes (struct)
+  "Get docker volume list from the compose STRUCT."
+  (let (volumes)
+    (dolist (service (cdr (assoc "services" struct)))
+      (dolist (volume (cdr (assoc "volumes" service)))
+        (when (s-starts-with-p "." volume)
+          (push (cons (car service) (s-split ":" volume)) volumes))))
+    volumes))
 
-(defun pythonic-set-path-variable ()
-  "Set PATH according to `python-shell-exec-path'."
-  (setenv "PATH" (pythonic-get-path-variable)))
+(defun pythonic-get-docker-compose-container (filename service)
+  "Get container name from the FILENAME project for SERVICE name."
+  (s-trim
+   ;; FIXME:
+   ;;
+   ;; It is possible to have many running containers for given
+   ;; service.
+   ;;
+   ;; Use container name, not the hash.  This way we can survive
+   ;; service recreation.
+   (with-output-to-string
+     (with-current-buffer
+         standard-output
+       (call-process "docker-compose" nil t nil
+                     "--file" filename "ps" "--quiet" service)))))
 
-(defun pythonic-set-path-variable-tramp ()
-  "Set PATH according to `python-shell-exec-path' on remote host."
-  (let* ((vec (tramp-dissect-file-name (pythonic-tramp-connection)))
-         (path (s-split path-separator (pythonic-get-path-variable-tramp))))
-    (tramp-set-connection-property vec "remote-path" path)
-    (tramp-set-remote-path vec)))
+(defun pythonic-set-docker-compose-alias ()
+  "Build alias string for current docker-compose project."
+  (hack-dir-local-variables-non-file-buffer)
+  (unless
+      (or (tramp-tramp-file-p default-directory)
+          (pythonic-has-alias-p default-directory))
+    (let ((project (pythonic-get-docker-compose-project)))
+      (when project
+        (let* ((filename (pythonic-get-docker-compose-filename project))
+               (struct (pythonic-read-docker-compose-file filename))
+               (volumes (pythonic-get-docker-compose-volumes struct))
+               ;; FIXME: Each service can have many volumes.  It
+               ;; should appears once in the selection and all volumes
+               ;; should be added to the alias list.
+               (volume (if (< 1 (length volumes))
+                             (assoc
+                              (if pythonic-docker-compose-service-name
+                                  pythonic-docker-compose-service-name
+                                (completing-read "Service: " (mapcar #'car volumes) nil t))
+                              volumes)
+                         (car volumes)))
+               (service (car volume))
+               (sub-project (f-join project (cadr volume)))
+               (mount (caddr volume))
+               (container (pythonic-get-docker-compose-container filename service))
+               ;; FIXME: Get actual user for the connection string.
+               (connection (format "/docker:root@%s:%s" container mount))
+               (alias (list sub-project connection)))
+          (unless (s-blank-p container)
+            (push alias pythonic-directory-aliases))
+          alias)))))
 
-(defun pythonic-set-extra-variables ()
-  "Set environment variables according to `python-shell-process-environment'."
-  (dolist (env python-shell-process-environment)
-    (let ((env (s-split "=" env)))
-      (setenv (car env) (cadr env)))))
+
+;;; Processes.
 
-(defun pythonic-set-extra-variables-tramp ()
-  "Set remote environment variables from `python-shell-process-environment'."
-  (dolist (env python-shell-process-environment)
-    (tramp-send-command
-     (tramp-dissect-file-name (pythonic-tramp-connection))
-     (format "export %s" env))))
+(defvar pythonic-interpreter python-shell-interpreter
+  "Interpreter to use for pythonic process calls.")
 
-(cl-defun call-pythonic (&key file buffer display args cwd)
+(cl-defun pythonic-call-process (&key file buffer display args cwd)
   "Pythonic wrapper around `call-process'.
 
 FILE is the input file. BUFFER is the output destination. DISPLAY
 specifies to redisplay BUFFER on new output. ARGS is the list of
+
 arguments passed to `call-process'. CWD will be working directory
 for running process."
-  (let ((default-directory (pythonic-default-directory cwd))
-        (process-environment (copy-sequence process-environment)))
-    (pythonic-set-process-environment)
-    (apply 'process-file (pythonic-executable) file buffer display args)))
+  (let ((default-directory (pythonic-aliased-path (or cwd default-directory))))
+    (python-shell-with-environment
+      (apply #'process-file pythonic-interpreter file buffer display args))))
 
-(cl-defun start-pythonic (&key process buffer args cwd filter sentinel (query-on-exit t))
+(cl-defun pythonic-start-process (&key process buffer args cwd filter sentinel (query-on-exit t))
   "Pythonic wrapper around `start-process'.
 
 PROCESS is a name of the created process. BUFFER is a output
@@ -197,47 +278,30 @@ process.  FILTER must be a symbol of process filter function if
 necessary.  SENTINEL must be a symbol of process sentinel
 function if necessary.  QUERY-ON-EXIT will be corresponding
 process flag."
-  (let ((default-directory (pythonic-default-directory cwd))
-        (process-environment (copy-sequence process-environment)))
-    (pythonic-set-process-environment)
-    (let ((process (apply 'start-file-process process buffer (pythonic-executable) args)))
-      (when filter
-        (set-process-filter process filter))
-      (when sentinel
-        (set-process-sentinel process sentinel))
-      (set-process-query-on-exit-flag process query-on-exit)
-      (process-put process
-                   'pythonic
-                   (list
-                    :connection (pythonic-tramp-connection)
-                    :pythonpath (pythonic-get-pythonpath)
-                    :path (pythonic-get-path)
-                    :environment python-shell-process-environment))
-      process)))
+  (let ((default-directory (pythonic-aliased-path (or cwd default-directory))))
+    (python-shell-with-environment
+      (let ((process (apply #'start-file-process process buffer pythonic-interpreter args)))
+        (when filter
+          (set-process-filter process filter))
+        (when sentinel
+          (set-process-sentinel process sentinel))
+        (set-process-query-on-exit-flag process query-on-exit)
+        process))))
 
-(defun pythonic-proper-environment-p (process)
-  "Determine if python environment has been changed since PROCESS was started."
-  (--if-let (process-get process 'pythonic)
-      (and
-       (equal (car (process-command process)) (pythonic-executable))
-       (equal (plist-get it :connection) (pythonic-tramp-connection))
-       (equal (plist-get it :pythonpath) (pythonic-get-pythonpath))
-       (equal (plist-get it :path) (pythonic-get-path))
-       (equal (plist-get it :environment) python-shell-process-environment))
-    (error "Process %s wasn't started with `start-pythonic'"
-           (process-name process))))
+
+;;; Commands.
 
 ;;;###autoload
 (defun pythonic-activate (virtualenv)
   "Activate python VIRTUALENV."
   (interactive "DEnv: ")
-  (setq pythonic-environment virtualenv))
+  (setq python-shell-virtualenv-root (pythonic-python-readable-file-name virtualenv)))
 
 ;;;###autoload
 (defun pythonic-deactivate ()
   "Deactivate python virtual environment."
   (interactive)
-  (setq pythonic-environment nil))
+  (setq python-shell-virtualenv-root nil))
 
 (provide 'pythonic)
 
