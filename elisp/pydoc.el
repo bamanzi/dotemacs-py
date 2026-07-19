@@ -4,9 +4,9 @@
 
 ;; Author: John Kitchin <jkitchin@andrew.cmu.edu>
 ;; Maintainer: Brian J. Lopes <statmobile@gmail.com>
-;; Contributions from Kyle Meyer
+;; Contributions from Kyle Meyer and Taro Sato <okomestudio@gmail.com>
 ;; Created: 8 Mar 2015
-;; Version: 0.2
+;; Version: 0.3
 ;; Keywords: pydoc, python
 ;; Homepage: https://github.com/statmobile/pydoc
 
@@ -18,11 +18,12 @@
 ;; colorized for readability, e.g. environment variables and strings, function
 ;; names and arguments.
 ;;
-;; https://github.com/statmobile/pydoc
+;; The pydoc.el module provides the following functions:
 ;;
-;; pydoc.el provides the following functions.
 ;; `pydoc' Run this anywhere, and enter the module/class/function you want documentation for
-;; `pydoc-at-point' Run this in a Python script to see what doc jedi can find for the point
+;; `pydoc-at-point' Run this in a Python buffer to look up the object at point
+;; `pydoc-at-point-jedi' Perform at-point object lookup using Jedi
+;; `pydoc-at-point-no-jedi' Perform at-point object lookup without Jedi
 ;; `pydoc-browse' Launches a web browser with documentation.
 ;; `pydoc-browse-kill' kills the pydoc web server.
 ;;
@@ -34,9 +35,10 @@
 ;; they will not render correctly.
 
 ;;; Changelog:
-;;
-;; Updated license and headers for release.
-;; March 2016: Major rewrite by Kyle Meyer to use help-buffers
+
+;; - Updated license and headers for release
+;; - March 2016: Major rewrite by Kyle Meyer to use help-buffers
+;; - July 2025: Add pydoc-treesit.el adapter layer
 
 ;;; Code:
 
@@ -56,7 +58,19 @@
   :group 'help)
 
 
-(defcustom pydoc-command "python -m pydoc"
+(defcustom pydoc-python-command "python"
+  "The command to use to execute python code."
+  :type 'string
+  :group 'pydoc)
+
+
+(defcustom pydoc-pip-version-command "pip --version"
+  "The command to use to get the pip version."
+  :type 'string
+  :group 'pydoc)
+
+
+(defcustom pydoc-command (concat pydoc-python-command " -m pydoc")
   "The command to use to run pydoc."
   :type 'string
   :group 'pydoc)
@@ -350,6 +364,7 @@ Optional argument BUFFER which is used if provided."
         (while (re-search-forward ",\\s-*\\(\\w+\\)" line-end t)
           (help-xref-button 1 'pydoc-help (match-string 1)))))))
 
+
 (defun pydoc--buttonize-other ()
   "Buttonize the OTHER section.
 This section is unique to `pydoc-at-point' output."
@@ -459,42 +474,66 @@ Adapted from `help-make-xrefs'."
   "Return list of built in python modules."
   (mapcar
    'symbol-name
-   (read (shell-command-to-string "python -c \"import sys; print('({})'.format(' '.join(['\"{}\"'.format(x) for x in sys.builtin_module_names])))\""))))
+   (read (shell-command-to-string (concat pydoc-python-command " -c \"import sys; print('({})'.format(' '.join(['\"{}\"'.format(x) for x in sys.builtin_module_names])))\"")))))
+
+
+(defun pydoc-pip-version ()
+  "Return a list of (major minor revision) for the pip version."
+  (let* ((output (shell-command-to-string pydoc-pip-version-command))
+	 (string-version (nth 1 (split-string output " " t)))
+	 (string-major-minor-rev (split-string string-version "\\.")))
+    (mapcar
+     'string-to-number
+     string-major-minor-rev)))
 
 
 (defun pydoc-user-modules ()
   "Return a list of strings for user-installed modules."
-  (if (executable-find "pip")
-      (mapcar
-       'symbol-name
-       (read
-	(shell-command-to-string
-	 "python -c \"import pip; mods = sorted([i.key for i in pip.get_installed_distributions()]); print('({})'.format(' '.join(['\"{}\"'.format(x) for x in mods])))  \"")))
-    (message "pip not found. No user-installed modules found.")
-    '()))
+  (mapcar
+   'symbol-name
+   (read
+    (shell-command-to-string
+     ;; Use either importlib_metadata (a backport of importlib.metadata) or
+     ;; importlib.metadata itself if it is available.
+     (concat python-shell-interpreter " -c \"implib_meta_backport = None\nimplib_meta_python = None\ntry: import importlib_metadata;implib_meta_backport = importlib_metadata\nexcept: pass\ntry: import importlib.metadata;implib_meta_python = importlib.metadata\nexcept: pass\nimplib_meta = implib_meta_python or implib_meta_backport\nmods = sorted([i for i in map(lambda x: x.metadata['name'], implib_meta.distributions()) if i]); print('({})'.format(' '.join(['\"{}\"'.format(x) for x in mods])))  \"")
+     ;; For older versions of Python.
+     ;; (concat python-shell-interpreter " -c \"import pip; mods = sorted([i.key for i in pip.get_installed_distributions()]); print('({})'.format(' '.join(['\"{}\"'.format(x) for x in mods])))  \"")
+     ))))
 
 
 (defun pydoc-pkg-modules ()
   "Return list of built in python modules."
   (mapcar
    'symbol-name
-   (read (shell-command-to-string "python -c \"import pkgutil; print('({})'.format(' '.join(['\"{}\"'.format(x[1]) for x in pkgutil.iter_modules()])))\""))))
+   (read (shell-command-to-string (concat pydoc-python-command " -c \"import pkgutil; print('({})'.format(' '.join(['\"{}\"'.format(x[1]) for x in pkgutil.iter_modules()])))\"")))))
 
 
 (defun pydoc-topics ()
   "List of topics from the shell command `pydoc topics`."
   (apply
    'append
-   (mapcar (lambda (x) (split-string x " " t))
-	   (cdr (split-string  (shell-command-to-string "python -m pydoc topics") "\n" t)))))
+   (mapcar (lambda (x) (split-string x " " t " "))
+	   (cdr (split-string  (shell-command-to-string (concat pydoc-command " topics")) "\n" t " ")))))
 
 
 (defun pydoc-keywords ()
   "List of topics from the shell command `pydoc keywords`."
   (apply
    'append
-   (mapcar (lambda (x) (split-string x " " t))
-	   (cdr (split-string  (shell-command-to-string "python -m pydoc keywords") "\n" t)))))
+   (mapcar (lambda (x) (split-string x " " t " "))
+	   (cdr (split-string  (shell-command-to-string (concat pydoc-command " keywords")) "\n" t " ")))))
+
+
+(defvar pydoc-builtin-objects nil)
+(defun pydoc-builtin-objects ()
+	"List of built-in objects, i.e., classes and functions."
+	(if pydoc-builtin-objects
+			pydoc-builtin-objects
+		(setq pydoc-builtin-objects
+					(split-string (shell-command-to-string
+												 (concat pydoc-python-command
+																 " -c 'for i in dir(__builtins__): print(i)'"))
+												"\n" t " "))))
 
 
 (defvar *pydoc-all-modules*
@@ -509,14 +548,16 @@ Optional RELOAD rereads the cache."
   (if (and (not reload) *pydoc-all-modules*)
       *pydoc-all-modules*
     (setq *pydoc-all-modules*
-	  (sort
-	   (append
-	    (pydoc-topics)
-	    (pydoc-keywords)
-	    (pydoc-builtin-modules)
-	    (pydoc-user-modules)
-	    (pydoc-pkg-modules))
-	   'string<))))
+	  (delete-dups
+	   (sort
+	    (append
+	     (pydoc-topics)
+	     (pydoc-keywords)
+	     (pydoc-builtin-objects)
+	     (pydoc-builtin-modules)
+	     (pydoc-user-modules)
+	     (pydoc-pkg-modules))
+	    'string<)))))
 
 
 ;;* Fontification functions
@@ -541,8 +582,9 @@ These are lines marked by `pydoc-example-code-leader-re'."
   (when (re-search-forward pydoc-example-code-leader-re limit t)
     (set-text-properties (match-beginning 1) (match-end 1)
                          '(font-lock-face pydoc-example-leader-face))
-    (org-src-font-lock-fontify-block
-     "python" (match-beginning 2) (match-end 2))
+		(let ((major-mode 'org-mode))
+      (org-src-font-lock-fontify-block
+       "python" (match-beginning 2) (match-end 2)))
     t))
 
 
@@ -646,19 +688,12 @@ Execute BODY in the buffer. This is the same as
      ;; Make `help-window-point-marker' point nowhere.  The only place
      ;; where this should be set to a buffer position is within BODY.
      (set-marker help-window-point-marker nil)
-     (if (boundp 'temp-buffer-window-setup-hook)
-         (let ((temp-buffer-window-setup-hook
-                (cons 'pydoc-mode-setup temp-buffer-window-setup-hook))
-               (temp-buffer-window-show-hook
-                (cons 'pydoc-mode-finish temp-buffer-window-show-hook)))
-           (with-temp-buffer-window
-            ,buffer-name nil 'help-window-setup (progn ,@body)))
-       (with-current-buffer ,buffer-name
-         (erase-buffer)
-         (pydoc-mode-setup)
-         (progn ,@body)
-         (pydoc-mode-finish))
-       (display-buffer ,buffer-name 'not-this-window))))
+     (let ((temp-buffer-window-setup-hook
+            (cons 'pydoc-mode-setup temp-buffer-window-setup-hook))
+           (temp-buffer-window-show-hook
+            (cons 'pydoc-mode-finish temp-buffer-window-show-hook)))
+       (with-temp-buffer-window
+        ,buffer-name nil 'help-window-setup (progn ,@body)))))
 
 
 (defun pydoc-buffer ()
@@ -736,9 +771,8 @@ Commands:
 		   pydoc-latex-overlays-4
 		   pydoc-latex-overlays-5
 		   org-display-inline-images))
-        (goto-char (point-min))
-        (if (fboundp f)
-            (funcall f nil))))
+	(goto-char (point-min))
+	(funcall f nil)))
     (setq buffer-read-only t)
     (run-hooks 'pydoc-after-finish-hook)))
 
@@ -749,7 +783,7 @@ Commands:
 Completion is provided with candidates from `pydoc-all-modules'.
 This is cached for speed. Use a prefix arg to refresh it."
   (interactive
-   (list (ido-completing-read
+   (list (completing-read
 	  "Name of function or module: "
 	  (pydoc-all-modules current-prefix-arg))))
   (pydoc-setup-xref (list #'pydoc name)
@@ -758,8 +792,27 @@ This is cached for speed. Use a prefix arg to refresh it."
     (call-process-shell-command (concat pydoc-command " " name)
 				nil standard-output)))
 
+
 ;;;###autoload
-(defun pydoc-at-point ()
+(defun pydoc-at-point-no-jedi (&optional prompt)
+  "Try to get help for thing at point without python-jedi.
+With non-nil PROMPT or without a thing, prompt for the function or module."
+  (interactive "P")
+  (let ((name-of-symbol-at-point (if (symbol-at-point)
+				     (symbol-name (symbol-at-point))
+				   "")))
+    (if (or prompt
+	    (not (symbol-at-point)))
+	(pydoc (completing-read
+		"Name of function or module: "
+		(pydoc-all-modules current-prefix-arg)
+		nil nil
+		name-of-symbol-at-point))
+      (pydoc name-of-symbol-at-point))) )
+
+
+;;;###autoload
+(defun pydoc-at-point-jedi ()
   "Try to get help for thing at point.
 Requires the python package jedi to be installed.
 
@@ -772,32 +825,32 @@ There is no way right now to get to the full module path. This is a known limita
 	 (python-script
 	  (format
 	   "import jedi
-s = jedi.Script(\"\"\"%s\"\"\", %s, %s, path=\"%s\")
-gd = s.goto_definitions()
+
+version = [int(x) for x in jedi.__version__.split('.')]
+
+if version[1] < 18:
+    raise Exception('Please install jedi 0.18:\\npip install --upgrade jedi')
+
+s = jedi.Script(code=\"\"\"%s\"\"\")
+
+# This is a list
+gd = s.infer(line=%s, column=%s)
+
 
 if len(gd) > 0:
-    script_modules = gd[0]._evaluator.modules
-    if len(script_modules) > 0:
-        related = '\\n    '.join([smod for smod in script_modules if 'py-' not in smod])
-    else:
-        related = None
-
-    print('''Help on {0}:
+    print(f'''Help on {gd[0].full_name}:
 
 NAME
-    {3}
+    {gd[0].name}
 
-{4}
+{gd[0].docstring()}
 
 FILE
-    {1}::{2}
-
-OTHER MODULES IN THIS FILE
-    {5}
-'''.format(gd[0].full_name, gd[0].module_path, gd[0].line, gd[0].name, gd[0].docstring(), related))"
+    {gd[0].module_path}::{gd[0].line}
+''')"
 	   ;; I found I need to quote double quotes so they
 	   ;; work in the script above.
-	   (replace-regexp-in-string "\"" "\\\\\"" script)
+	   (replace-regexp-in-string "\"" "\\\\\"" (replace-regexp-in-string "\\\\" "\\\\\\\\" script))
 	   line
 	   column
 	   tfile)))
@@ -808,9 +861,22 @@ OTHER MODULES IN THIS FILE
     (pydoc-with-help-window (pydoc-buffer)
       (with-temp-file tfile
 	(insert python-script))
-      (call-process-shell-command (concat "python " tfile)
+      (call-process-shell-command (concat pydoc-python-command " " tfile)
 				  nil standard-output)
       (delete-file tfile))))
+
+;; Avoid missing function warning when AOT compiling module
+(autoload 'pydoc-treesit-at-point "pydoc-treesit")
+
+;;;###autoload
+(defun pydoc-at-point ()
+	"Get help for Python object at point.
+When `python-ts-mode' is active, it runs `pydoc-treesit-at-point'. Otherwise, it
+falls back to `pydoc-at-point-jedi'."
+	(interactive)
+	(if (derived-mode-p '(python-ts-mode))
+			(pydoc-treesit-at-point)
+		(pydoc-at-point-jedi)))
 
 
 ;;** pydoc browser
@@ -832,7 +898,7 @@ Attempts to find an open port, and to reuse the process."
   (unless *pydoc-browser-process*
     ;; find an open port
     (if (executable-find "lsof")
-	(loop for port from 1025
+	(cl-loop for port from 1025
 	      if (string= "" (shell-command-to-string (format "lsof -i :%s" port)))
 	      return (setq *pydoc-browser-port* (number-to-string port)))
       ;; Windows may not have an lsof command.
